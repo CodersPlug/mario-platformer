@@ -6,19 +6,9 @@ No usa IP de Sonic. No requiere la app Melon.
 
 ## Jugar en el iPad
 
-El juego vive en [`play/`](play/) y se publica con [`.github/workflows/pages.yml`](../.github/workflows/pages.yml).
+**https://codersplug.github.io/mario-platformer/**
 
-**URL (cuando Pages esté activo):**  
-https://codersplug.github.io/mario-platformer/
-
-### Activar Pages (una vez)
-
-El repo está **privado** y el token de Actions no pudo crear el sitio solo. En GitHub:
-
-1. **Settings → Pages**
-2. Build and deployment → Source: **GitHub Actions**
-3. Re-run el workflow *Deploy Melon Libre to GitHub Pages* (o mergeá a `main` / push a la branch)
-4. Abrí la URL de arriba en **Safari del iPad** (Add to Home Screen si querés)
+Safari → esa URL (Add to Home Screen si querés). Publicado desde el branch `gh-pages` (copia de [`play/`](play/)).
 
 ### Local
 
