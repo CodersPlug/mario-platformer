@@ -190,3 +190,40 @@ body {
     display: none;
   }
 }
+
+/* Short iPad landscape / Safari chrome: keep playfield tall enough for the floor */
+@media (max-height: 720px) {
+  .topbar {
+    padding: 6px 8px;
+  }
+
+  .tools {
+    gap: 6px;
+  }
+
+  .tools button {
+    min-height: 34px;
+    min-width: 34px;
+    padding: 0 10px;
+    font-size: 0.78rem;
+  }
+
+  .dock {
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .spawn-grid {
+    gap: 6px;
+  }
+
+  .spawn-grid button {
+    min-height: 34px;
+    font-size: 0.72rem;
+    padding: 4px 4px;
+  }
+
+  .spawn-row .hint {
+    display: none;
+  }
+}

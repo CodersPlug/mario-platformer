@@ -38,12 +38,18 @@
     runnerAlive: false,
     spawnAt: null,
     cameraX: 0,
+    cameraY: 0,
+    floorY: 420,
   };
 
   const SAVE_KEY = "melon-libre-azulin-v1";
   const WORLD_W = 4000;
-  const FLOOR_Y = 520;
   let mouseConstraint = null;
+  let mouse = null;
+
+  function floorY() {
+    return state.floorY;
+  }
 
   const engine = Engine.create({ enableSleeping: true });
   engine.gravity.y = 1;
@@ -65,28 +71,84 @@
   Runner.run(runner, engine);
   Render.run(render);
 
+  function syncMouseToCamera() {
+    if (!mouse || !render.options.width || !render.options.height) return;
+    Mouse.setOffset(mouse, {
+      x: render.bounds.min.x,
+      y: render.bounds.min.y,
+    });
+    Mouse.setScale(mouse, {
+      x: (render.bounds.max.x - render.bounds.min.x) / render.options.width,
+      y: (render.bounds.max.y - render.bounds.min.y) / render.options.height,
+    });
+  }
+
+  /** Keep the physics floor in the lower part of the canvas (fixes iPad short viewports). */
+  function layoutCamera() {
+    const w = render.options.width;
+    const h = render.options.height;
+    if (w < 2 || h < 2) return;
+    const floorScreenY = Math.min(h - 48, Math.max(h * 0.78, h - 90));
+    const camTop = floorY() - floorScreenY;
+    state.cameraY = camTop;
+    Render.lookAt(render, {
+      min: { x: state.cameraX, y: camTop },
+      max: { x: state.cameraX + w, y: camTop + h },
+    });
+    syncMouseToCamera();
+  }
+
   function resize() {
     const wrap = canvas.parentElement;
     const w = Math.max(320, wrap.clientWidth);
-    const h = Math.max(240, wrap.clientHeight);
+    const h = Math.max(220, wrap.clientHeight);
     render.options.width = w;
     render.options.height = h;
+    render.options.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = w * render.options.pixelRatio;
     canvas.height = h * render.options.pixelRatio;
     canvas.style.width = w + "px";
     canvas.style.height = h + "px";
     Render.setPixelRatio(render, render.options.pixelRatio);
-    render.bounds.min.x = state.cameraX;
-    render.bounds.min.y = 0;
-    render.bounds.max.x = state.cameraX + w;
-    render.bounds.max.y = h;
-    Render.lookAt(render, {
-      min: { x: state.cameraX, y: 0 },
-      max: { x: state.cameraX + w, y: h },
-    });
+
+    const prevFloor = state.floorY;
+    // Anchor floor near the bottom of the playfield height.
+    state.floorY = Math.max(200, h - 56);
+    const dy = state.floorY - prevFloor;
+    if (Math.abs(dy) > 0.5) {
+      shiftWorldForFloor(dy);
+    }
+    layoutCamera();
+  }
+
+  function shiftWorldForFloor(dy) {
+    const bodies = Composite.allBodies(engine.world);
+    for (const b of bodies) {
+      if (!b.plugin || !b.plugin.melon) continue;
+      const kind = b.plugin.melon.kind;
+      if (kind === "world" || kind === "platform" || kind === "obstacle") {
+        Body.setPosition(b, { x: b.position.x, y: b.position.y + dy });
+        continue;
+      }
+      // Keep resting props / livings on the ground when the floor moves.
+      if (b.position.y > prevFloorNear(dy) - 120) {
+        Body.setPosition(b, { x: b.position.x, y: b.position.y + dy });
+        Body.setVelocity(b, { x: b.velocity.x, y: 0 });
+      }
+    }
+  }
+
+  function prevFloorNear(dy) {
+    return state.floorY - dy;
   }
 
   window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", function () {
+    setTimeout(resize, 200);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", resize);
+  }
 
   function tag(body, meta) {
     body.plugin = body.plugin || {};
@@ -111,14 +173,15 @@
     if (mouseConstraint) Composite.add(engine.world, mouseConstraint);
 
     const thickness = 80;
-    const floor = Bodies.rectangle(WORLD_W / 2, FLOOR_Y + thickness / 2, WORLD_W, thickness, {
+    const fy = floorY();
+    const floor = Bodies.rectangle(WORLD_W / 2, fy + thickness / 2, WORLD_W, thickness, {
       isStatic: true,
       friction: 0.9,
       render: { fillStyle: "#5f8f45", strokeStyle: "#3f6a2c", lineWidth: 2 },
     });
     tag(floor, { kind: "world", deletable: false, freezeable: false });
 
-    const left = Bodies.rectangle(-40, 260, 80, 800, {
+    const left = Bodies.rectangle(-40, fy - 200, 80, 800, {
       isStatic: true,
       render: { visible: false },
     });
@@ -129,7 +192,7 @@
     // Starter platforms / Melon-like playground props
     for (let i = 0; i < 8; i++) {
       const x = 220 + i * 180;
-      const box = Bodies.rectangle(x, FLOOR_Y - 30 - (i % 3) * 10, 44, 44, {
+      const box = Bodies.rectangle(x, fy - 30 - (i % 3) * 10, 44, 44, {
         restitution: 0.1,
         friction: 0.7,
         density: 0.002,
@@ -344,7 +407,7 @@
   }
 
   // Mouse / touch puppeteering
-  const mouse = Mouse.create(canvas);
+  mouse = Mouse.create(canvas);
   mouse.pixelRatio = render.options.pixelRatio;
   mouseConstraint = MouseConstraint.create(engine, {
     mouse,
@@ -366,8 +429,10 @@
 
   function canvasToWorld(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * render.options.width + state.cameraX;
-    const y = ((clientY - rect.top) / rect.height) * render.options.height;
+    const x =
+      ((clientX - rect.left) / rect.width) * render.options.width + state.cameraX;
+    const y =
+      ((clientY - rect.top) / rect.height) * render.options.height + state.cameraY;
     return { x, y };
   }
 
@@ -452,7 +517,7 @@
   function runnerJump() {
     const hero = state.runnerHero;
     if (!hero || !state.runnerAlive) return;
-    if (hero.velocity.y > -0.2 && hero.velocity.y < 0.55 && hero.position.y > FLOOR_Y - 80) {
+    if (hero.velocity.y > -0.2 && hero.velocity.y < 0.55 && hero.position.y > floorY() - 80) {
       Body.setVelocity(hero, { x: Math.max(hero.velocity.x, 4.2), y: -9.5 });
     }
   }
@@ -497,7 +562,7 @@
       const x = 500 + i * 160;
       if (i % 5 === 4) {
         // pit: remove floor coverage by elevated platforms only
-        const plat = Bodies.rectangle(x + 80, FLOOR_Y - 40, 100, 20, {
+        const plat = Bodies.rectangle(x + 80, floorY() - 40, 100, 20, {
           isStatic: true,
           friction: 1,
           render: { fillStyle: "#6e9b5a", strokeStyle: "#3f6a2c", lineWidth: 2 },
@@ -506,8 +571,8 @@
         Composite.add(engine.world, plat);
         continue;
       }
-      const h = 30 + (i % 3) * 18;
-      const obst = Bodies.rectangle(x, FLOOR_Y - h / 2 - 2, 34, h, {
+      const oh = 30 + (i % 3) * 18;
+      const obst = Bodies.rectangle(x, floorY() - oh / 2 - 2, 34, oh, {
         isStatic: true,
         friction: 0.8,
         render: { fillStyle: "#c48a4a", strokeStyle: "#7a5228", lineWidth: 2 },
@@ -516,7 +581,7 @@
       Composite.add(engine.world, obst);
     }
 
-    spawnAzulin(120, FLOOR_Y - 70, { hero: true });
+    spawnAzulin(120, floorY() - 70, { hero: true });
     updateHud();
     resize();
   }
@@ -585,12 +650,9 @@
       state.score = Math.max(state.score, hero.position.x - 120);
       const targetCam = hero.position.x - render.options.width * 0.3;
       state.cameraX = Math.max(0, targetCam);
-      Render.lookAt(render, {
-        min: { x: state.cameraX, y: 0 },
-        max: { x: state.cameraX + render.options.width, y: render.options.height },
-      });
+      layoutCamera();
       updateHud();
-      if (hero.position.y > FLOOR_Y + 120) {
+      if (hero.position.y > floorY() + 120) {
         state.runnerAlive = false;
         setTimeout(startRunner, 600);
       }
@@ -636,11 +698,12 @@
     setTool("spawn");
   });
 
-  // Boot
+  // Boot — size first so floorY matches the iPad viewport
   document.getElementById("btnGravity").classList.add("active");
-  buildWorldFloor();
-  spawnAzulin(160, FLOOR_Y - 70);
   resize();
+  buildWorldFloor();
+  spawnAzulin(160, floorY() - 70);
+  layoutCamera();
   setTool("hand");
   updateHud();
 })();
