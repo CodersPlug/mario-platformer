@@ -1,114 +1,56 @@
-# Melon Runner — Azulín
+# Melon Libre — Azulín
 
-Auto-runner 2D para **Melon Sandbox** (Lua Chip): Azulín corre solo hacia la derecha, salta obstáculos y reinicia si cae.
+Sandbox 2D **jugable en el iPad** (GitHub Pages), inspirado en Melon Sandbox: gravedad, física, puppeteering (arrastrar/tirar), spawner, congelar, borrar, ragdoll **Azulín**, modo Runner y guardar/cargar local.
 
-Melon no se edita desde Cursor. Acá están el script y la guía; vos armás el save en el juego.
+No usa IP de Sonic. No requiere la app Melon.
+
+## Jugar en el iPad
+
+1. Mergeá este PR (o esperá el deploy de Pages en la branch).
+2. En el repo de GitHub: **Settings → Pages →** Source **GitHub Actions** (si todavía no).
+3. Abrí en Safari del iPad:
+
+**https://codersplug.github.io/mario-platformer/**
+
+(Esa URL sirve el contenido de `MelonRunner/play/` vía el workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml).)
+
+Local:
+
+```bash
+cd MelonRunner/play && python3 -m http.server 8080
+```
+
+Abrí `http://localhost:8080`.
+
+## Qué imita de Melon
+
+| Característica Melon | En Melon Libre |
+|----------------------|----------------|
+| Física 2D + gravedad | Matter.js, botón Gravedad on/off |
+| Puppeteering / drag | Herramienta **Mano** (dedo / mouse), impulso al soltar |
+| Spawner de ítems | Dock: Azulín, caja, pelota, tabla, cono, barril, bloque, globo, resorte, rueda, empuje, piso |
+| Living ragdoll | **Azulín** (partes + constraints) |
+| Borrar / congelar | Herramientas **Borrar** y **Congelar** |
+| Pausa / limpiar mundo | Botones **Pausa** y **Limpiar** |
+| Saves | **Guardar** / **Cargar** (`localStorage`) |
+| Mini-juego / escena | **Runner**: auto-run, salto (tap/Space), obstáculos, score, reset al caer |
+| Táctil iPad | UI 44px+, `100dvh`, sin hover obligatorio |
+
+No clona Workshop, Lua Chip nativo, armas ni gore de Melon (orientado a juego familiar). El script Lua de referencia para la app Melon real sigue en [`lua/runner.lua`](lua/runner.lua).
 
 ## Archivos
 
-| Archivo | Uso |
-|---------|-----|
-| [`lua/runner.lua`](lua/runner.lua) | Pegar en el Lua Chip |
-| [`lua/azulin_notes.md`](lua/azulin_notes.md) | Spec del avatar (Editor) |
+| Ruta | Rol |
+|------|-----|
+| [`play/index.html`](play/index.html) | Shell táctil |
+| [`play/style.css`](play/style.css) | Layout iPad |
+| [`play/game.js`](play/game.js) | Motor sandbox + runner |
+| [`lua/runner.lua`](lua/runner.lua) | Misma lógica para Lua Chip (app Melon) |
+| [`lua/azulin_notes.md`](lua/azulin_notes.md) | Spec visual Azulín |
 
-Sitio Melon: https://melonsandbox.com/
+## Controles
 
----
-
-## 1. Avatar Azulín (Editor)
-
-1. Abrí Melon → menú **Editor**.
-2. **Create New** → elegí una base living/humanoide (o template similar).
-3. Seguí [`lua/azulin_notes.md`](lua/azulin_notes.md): textura original azul, sin marca Sonic.
-4. Ajustá colliders, guardá el mod como **`Azulin`**.
-5. Cargá el mod una vez en el juego antes de usarlo en el mapa.
-
----
-
-## 2. Mapa del runner
-
-1. Nuevo mapa / save vacío.
-2. Construí un **suelo largo** a la derecha (placas, brick, terreno continuo). Dejá al menos un **hoyo** opcional para probar el fail.
-3. Spawn **Azulín** al inicio del suelo (pies apoyados).
-4. Congelá / anclá el suelo para que no se mueva.
-
----
-
-## 3. Lua Chip
-
-1. Inventario → **Mechanisms** → **Lua Chip** → spawn cerca del inicio.
-2. Abrí el chip → **Open Editor**.
-3. Borrá el código de ejemplo.
-4. Pegá el contenido completo de [`lua/runner.lua`](lua/runner.lua).
-5. Guardá / aplicá el script (autosave del chip si está verde).
-
-### Inputs (aparecen al compilar el script)
-
-| Input | Tipo | Cable / valor |
-|-------|------|----------------|
-| `player` | entity | Cuerpo de Azulín (rainbow rope → chip) |
-| `speed` | num | Opcional; default **7** |
-| `jump` | num | Opcional; default **12** |
-| `floorY` | num | Opcional; Y bajo la cual falla (default **-8**) |
-
-### Outputs
-
-| Output | Significado |
-|--------|-------------|
-| `score` | Distancia recorrida (entero) |
-| `status` | `run` / `fail` / `wire player` |
-
-### Salto
-
-- **Activar el chip** (toque / activate) → encola un salto (`OnActivated`).
-- En PC: **Space**, **W** o **Up** si `input` está disponible en tu build.
-
----
-
-## 4. Wiring
-
-1. Seleccioná Azulín → conectá el cable de **entity** al input `player` del chip (conectar el ítem al chip).
-2. Opcional: fijá `speed` / `jump` / `floorY` en los pines numéricos.
-3. Dejá el chip **activado** o tocálo cada vez que quieras saltar (según cómo uses activate en tu device).
-
----
-
-## 5. Cómo se juega
-
-- Azulín **corre solo** a la derecha.
-- Tocá / activá el chip (o Space) para **saltar**.
-- Cada ~90 ticks spawnea un obstáculo adelante (`crate_wood` / `plastic_plate`).
-- Si cae bajo `floorY` (o muy por debajo del start), **reset** a la posición inicial y limpia obstáculos.
-- Score = distancia en X desde el start (consola cada 10 unidades).
-
-Si `spawn.create` falla en tu versión, cambiá los ids en `OBSTACLE_IDS` dentro de `runner.lua` por nombres que existan en `spawn.getItems()` (imprimilos una vez desde un chip de prueba).
-
----
-
-## 6. Checklist playtest
-
-- [ ] Azulín aparece con textura propia y no se cae a través del suelo
-- [ ] Chip compilado sin errores en consola
-- [ ] Cable `player` conectado (`status` ≠ `wire player`)
-- [ ] Corre solo a la derecha
-- [ ] Salto responde a activate / Space
-- [ ] Aparecen cajas/placas adelante
-- [ ] Obstáculos viejos se borran detrás
-- [ ] Caer al vacío reinicia y limpia obstáculos
-- [ ] `score` sube al avanzar
-- [ ] Save guardado como **`MelonRunner-Azulin`**
-
----
-
-## 7. Guardar
-
-Melon → guardar save / mapa como **`MelonRunner-Azulin`**.  
-Workshop: solo si lo pedís después (no incluido en este entregable).
-
----
-
-## Notas
-
-- Sin armas ni gore: solo carrera y obstáculos.
-- Sin IP Sonic: personaje y textos usan solo **Azulín**.
-- API varía por versión de Melon; el script usa `pcall` en cámara, input y delete para no romper el tick si falta un método.
+- **Mano**: arrastrá cuerpos (puppeteer).
+- **Colocar**: elegí ítem abajo y tocá el mundo.
+- **Runner**: tocá la pantalla o Space para saltar; la cámara sigue a Azulín.
+- **G** gravedad · **P** pausa (teclado).

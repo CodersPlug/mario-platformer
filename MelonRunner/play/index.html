@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Melon Libre — Azulín Sandbox</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <strong>Melon Libre</strong>
+        <span>Sandbox 2D · física · puppeteer · Azulín</span>
+      </div>
+      <div class="tools" id="tools">
+        <button type="button" data-tool="hand" class="active">Mano</button>
+        <button type="button" data-tool="spawn">Colocar</button>
+        <button type="button" data-tool="freeze">Congelar</button>
+        <button type="button" data-tool="delete" class="danger">Borrar</button>
+        <button type="button" id="btnGravity">Gravedad</button>
+        <button type="button" id="btnPause">Pausa</button>
+        <button type="button" id="btnClear">Limpiar</button>
+        <button type="button" id="btnRunner">Runner</button>
+        <button type="button" id="btnSave">Guardar</button>
+        <button type="button" id="btnLoad">Cargar</button>
+      </div>
+    </header>
+
+    <div class="stage-wrap">
+      <canvas id="world"></canvas>
+      <div class="hud">
+        <div class="pill" id="scorePill">Score 0</div>
+        <div class="pill" id="modePill">Sandbox</div>
+      </div>
+    </div>
+
+    <footer class="dock">
+      <div class="spawn-row">
+        <h2>Spawnear</h2>
+        <p class="hint">Arrastrá con el dedo · soltá con impulso · iPad OK</p>
+      </div>
+      <div class="spawn-grid" id="spawnGrid">
+        <button type="button" data-spawn="azulin" class="active">Azulín</button>
+        <button type="button" data-spawn="crate">Caja</button>
+        <button type="button" data-spawn="ball">Pelota</button>
+        <button type="button" data-spawn="plank">Tabla</button>
+        <button type="button" data-spawn="cone">Cono</button>
+        <button type="button" data-spawn="barrel">Barril</button>
+        <button type="button" data-spawn="block">Bloque</button>
+        <button type="button" data-spawn="balloon">Globo</button>
+        <button type="button" data-spawn="spring">Resorte</button>
+        <button type="button" data-spawn="wheel">Rueda</button>
+        <button type="button" data-spawn="bomb">Empuje</button>
+        <button type="button" data-spawn="platform">Piso</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="matter.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
