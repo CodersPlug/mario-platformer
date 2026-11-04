@@ -14,34 +14,21 @@
     <header class="topbar">
       <div class="brand">
         <strong>Melon Libre</strong>
-        <span>Sandbox 2D · física · puppeteer · Azulín</span>
+        <span>Arrastrá · tirás · doble tap borra</span>
       </div>
-      <div class="tools" id="tools">
-        <button type="button" data-tool="hand" class="active">Mano</button>
-        <button type="button" data-tool="spawn">Colocar</button>
-        <button type="button" data-tool="freeze">Congelar</button>
-        <button type="button" data-tool="delete" class="danger">Borrar</button>
-        <button type="button" id="btnGravity">Gravedad</button>
-        <button type="button" id="btnPause">Pausa</button>
-        <button type="button" id="btnClear">Limpiar</button>
-        <button type="button" id="btnRunner">Runner</button>
-        <button type="button" id="btnSave">Guardar</button>
-        <button type="button" id="btnLoad">Cargar</button>
+      <div class="tools">
+        <button type="button" id="btnRestart">Reiniciar</button>
       </div>
     </header>
 
     <div class="stage-wrap">
       <canvas id="world"></canvas>
-      <div class="hud">
-        <div class="pill" id="scorePill">Score 0</div>
-        <div class="pill" id="modePill">Sandbox</div>
-      </div>
     </div>
 
     <footer class="dock">
       <div class="spawn-row">
         <h2>Objetos</h2>
-        <p class="hint">Azulín ya está en escena · tocá un icono y el mundo</p>
+        <p class="hint">Elegí un icono · tocá la escena · Azulín no se borra</p>
       </div>
       <div class="spawn-grid" id="spawnGrid">
         <button type="button" data-spawn="barrel" class="icon-btn active" aria-label="Barril" title="Barril">

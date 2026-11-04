@@ -20,32 +20,25 @@
     MouseConstraint,
     Events,
     Query,
-    Vector,
   } = Matter;
 
   const canvas = document.getElementById("world");
-  const scorePill = document.getElementById("scorePill");
-  const modePill = document.getElementById("modePill");
 
   const state = {
-    tool: "hand",
+    tool: "hand", // hand | spawn
     spawnKind: "barrel",
-    gravityOn: true,
-    paused: false,
-    mode: "sandbox", // sandbox | runner
-    score: 0,
-    runnerHero: null,
-    runnerAlive: false,
-    spawnAt: null,
     cameraX: 0,
     cameraY: 0,
     floorY: 420,
     azulinParts: [],
     azulinTorso: null,
+    didDrag: false,
+    lastTap: { t: 0, x: 0, y: 0, id: null },
   };
 
-  const SAVE_KEY = "melon-libre-azulin-v1";
   const WORLD_W = 4000;
+  const DOUBLE_TAP_MS = 320;
+  const DOUBLE_TAP_DIST = 36;
   let mouseConstraint = null;
   let mouse = null;
 
@@ -162,13 +155,6 @@
     return body && body.plugin && body.plugin.melon && body.plugin.melon.kind === "world";
   }
 
-  function clearDynamic() {
-    state.runnerHero = null;
-    state.runnerAlive = false;
-    state.score = 0;
-    updateHud();
-  }
-
   function buildWorldFloor() {
     Composite.clear(engine.world, false);
     // Composite.clear removes the mouse constraint — put it back.
@@ -210,10 +196,26 @@
       const bGone = !Composite.get(engine.world, c.bodyB.id, "body");
       if (aGone || bGone) Composite.remove(engine.world, c);
     }
-    state.runnerHero = null;
-    state.runnerAlive = false;
     state.azulinParts = [];
     state.azulinTorso = null;
+  }
+
+  function restartScene() {
+    state.cameraX = 0;
+    buildWorldFloor();
+    ensureSingleAzulin(160, floorY() - 70);
+    setTool("hand");
+    resize();
+  }
+
+  function deleteBody(hit) {
+    if (!hit) return false;
+    const meta = hit.plugin && hit.plugin.melon;
+    if (!meta || meta.kind === "world" || meta.kind === "azulin" || meta.deletable === false) {
+      return false;
+    }
+    Composite.remove(engine.world, hit);
+    return true;
   }
 
   function ensureSingleAzulin(x, y, opts) {
@@ -307,10 +309,6 @@
     Composite.add(engine.world, parts.concat(constraints));
     state.azulinParts = parts;
     state.azulinTorso = torso;
-    if (opts.hero) {
-      state.runnerHero = torso;
-      state.runnerAlive = true;
-    }
     keepAzulinUpright();
     return torso;
   }
@@ -392,10 +390,18 @@
   render.mouse = mouse;
 
   Events.on(mouseConstraint, "startdrag", function () {
+    state.didDrag = true;
     if (state.tool !== "hand") {
       mouseConstraint.constraint.bodyB = null;
       mouseConstraint.body = null;
     }
+  });
+
+  Events.on(mouseConstraint, "enddrag", function () {
+    // Keep drag flag briefly so the matching pointerup ignores tap/delete.
+    setTimeout(function () {
+      state.didDrag = false;
+    }, 40);
   });
 
   function canvasToWorld(clientX, clientY) {
@@ -411,256 +417,79 @@
     const hits = Query.point(Composite.allBodies(engine.world), pos);
     for (let i = hits.length - 1; i >= 0; i--) {
       const b = hits[i];
-      if (isStaticFloor(b) && state.tool !== "spawn") continue;
+      if (isStaticFloor(b)) continue;
       return b;
     }
     return null;
   }
 
-  function onPointerTap(clientX, clientY) {
-    const pos = canvasToWorld(clientX, clientY);
+  function setTool(tool) {
+    state.tool = tool;
+    if (mouseConstraint) {
+      mouseConstraint.collisionFilter.mask = tool === "hand" ? 0xffffffff : 0;
+    }
+  }
+
+  function isDoubleTap(now, pos, hit) {
+    const prev = state.lastTap;
+    const dt = now - prev.t;
+    const dist = Math.hypot(pos.x - prev.x, pos.y - prev.y);
+    const sameTarget = hit && prev.id != null && hit.id === prev.id;
+    return dt > 0 && dt <= DOUBLE_TAP_MS && dist <= DOUBLE_TAP_DIST && sameTarget;
+  }
+
+  function rememberTap(now, pos, hit) {
+    state.lastTap = {
+      t: now,
+      x: pos.x,
+      y: pos.y,
+      id: hit ? hit.id : null,
+    };
+  }
+
+  function onCanvasPointerUp(ev) {
+    const pos = canvasToWorld(ev.clientX, ev.clientY);
+    const now = performance.now();
+
     if (state.tool === "spawn") {
       spawnProp(state.spawnKind, pos.x, pos.y);
       setTool("hand");
+      state.lastTap = { t: 0, x: 0, y: 0, id: null };
       return;
     }
+
+    if (state.didDrag) {
+      state.lastTap = { t: 0, x: 0, y: 0, id: null };
+      return;
+    }
+
     const hit = bodyAt(pos);
-    if (!hit) return;
-    const meta = hit.plugin && hit.plugin.melon;
-    if (state.tool === "delete") {
-      if (meta && meta.deletable === false) return;
-      // Remove connected ragdoll parts
-      if (meta && meta.ragdoll) {
-        const all = Composite.allBodies(engine.world);
-        for (const b of all) {
-          if (b.plugin && b.plugin.melon && b.plugin.melon.ragdoll && b.plugin.melon.name === meta.name) {
-            Composite.remove(engine.world, b);
-          }
-        }
-        const cons = Composite.allConstraints(engine.world);
-        for (const c of cons) {
-          if (!c.bodyA || !c.bodyB) continue;
-          if (!Composite.get(engine.world, c.bodyA.id, "body") || !Composite.get(engine.world, c.bodyB.id, "body")) {
-            Composite.remove(engine.world, c);
-          }
-        }
-      } else {
-        Composite.remove(engine.world, hit);
-      }
+    if (hit && isDoubleTap(now, pos, hit)) {
+      deleteBody(hit);
+      state.lastTap = { t: 0, x: 0, y: 0, id: null };
       return;
     }
-    if (state.tool === "freeze") {
-      if (meta && meta.freezeable === false) return;
-      Body.setStatic(hit, !hit.isStatic);
-      hit.render.opacity = hit.isStatic ? 0.7 : 1;
-    }
+    rememberTap(now, pos, hit);
   }
 
-  canvas.addEventListener(
-    "pointerup",
-    function (ev) {
-      if (state.tool === "hand") return;
-      // Ignore if dragged far
-      onPointerTap(ev.clientX, ev.clientY);
-    },
-    { passive: true }
-  );
+  canvas.addEventListener("pointerup", onCanvasPointerUp, { passive: true });
 
-  // Keyboard jump helper for runner
-  window.addEventListener("keydown", function (ev) {
-    if (ev.code === "Space" || ev.code === "ArrowUp" || ev.code === "KeyW") {
+  canvas.addEventListener(
+    "dblclick",
+    function (ev) {
       ev.preventDefault();
-      runnerJump();
-    }
-    if (ev.code === "KeyG") toggleGravity();
-    if (ev.code === "KeyP") togglePause();
-  });
-
-  canvas.addEventListener(
-    "pointerdown",
-    function (ev) {
-      if (state.mode === "runner" && state.tool === "hand") {
-        runnerJump();
-      }
+      const pos = canvasToWorld(ev.clientX, ev.clientY);
+      deleteBody(bodyAt(pos));
+      state.lastTap = { t: 0, x: 0, y: 0, id: null };
     },
-    { passive: true }
+    { passive: false }
   );
 
-  function runnerJump() {
-    const hero = state.runnerHero;
-    if (!hero || !state.runnerAlive) return;
-    if (hero.velocity.y > -0.2 && hero.velocity.y < 0.55 && hero.position.y > floorY() - 80) {
-      Body.setVelocity(hero, { x: Math.max(hero.velocity.x, 4.2), y: -9.5 });
-    }
-  }
-
-  function updateHud() {
-    scorePill.textContent = "Score " + Math.floor(state.score);
-    modePill.textContent = state.mode === "runner" ? "Runner" : "Sandbox";
-  }
-
-  function setTool(tool) {
-    state.tool = tool;
-    document.querySelectorAll("#tools [data-tool]").forEach(function (btn) {
-      btn.classList.toggle("active", btn.getAttribute("data-tool") === tool);
-    });
-    mouseConstraint.collisionFilter.mask = tool === "hand" ? 0xffffffff : 0;
-  }
-
-  function toggleGravity() {
-    state.gravityOn = !state.gravityOn;
-    engine.gravity.y = state.gravityOn ? 1 : 0;
-    document.getElementById("btnGravity").classList.toggle("active", state.gravityOn);
-  }
-
-  function togglePause() {
-    state.paused = !state.paused;
-    if (state.paused) Runner.stop(runner);
-    else Runner.run(runner, engine);
-    document.getElementById("btnPause").classList.toggle("active", state.paused);
-  }
-
-  function startRunner() {
-    clearDynamic();
-    // Keep floor — rebuild clean course
-    buildWorldFloor();
-    state.mode = "runner";
-    state.cameraX = 0;
-    state.score = 0;
-    setTool("hand");
-
-    // Long ground already; add gaps + obstacles
-    for (let i = 0; i < 18; i++) {
-      const x = 500 + i * 160;
-      if (i % 5 === 4) {
-        // pit: remove floor coverage by elevated platforms only
-        const plat = Bodies.rectangle(x + 80, floorY() - 40, 100, 20, {
-          isStatic: true,
-          friction: 1,
-          render: { fillStyle: "#6e9b5a", strokeStyle: "#3f6a2c", lineWidth: 2 },
-        });
-        tag(plat, { kind: "platform" });
-        Composite.add(engine.world, plat);
-        continue;
-      }
-      const oh = 30 + (i % 3) * 18;
-      const obst = Bodies.rectangle(x, floorY() - oh / 2 - 2, 34, oh, {
-        isStatic: true,
-        friction: 0.8,
-        render: { fillStyle: "#c48a4a", strokeStyle: "#7a5228", lineWidth: 2 },
-      });
-      tag(obst, { kind: "obstacle", deletable: true });
-      Composite.add(engine.world, obst);
-    }
-
-    ensureSingleAzulin(120, floorY() - 70, { hero: true });
-    updateHud();
-    resize();
-  }
-
-  function serializeWorld() {
-    const bodies = Composite.allBodies(engine.world)
-      .filter(function (b) {
-        return b.plugin && b.plugin.melon && b.plugin.melon.kind !== "world";
-      })
-      .map(function (b) {
-        return {
-          kind: b.plugin.melon.kind,
-          x: b.position.x,
-          y: b.position.y,
-          angle: b.angle,
-          isStatic: b.isStatic,
-          vx: b.velocity.x,
-          vy: b.velocity.y,
-        };
-      });
-    return JSON.stringify({ mode: state.mode, score: state.score, bodies: bodies });
-  }
-
-  function loadWorld(json) {
-    let data;
-    try {
-      data = JSON.parse(json);
-    } catch (e) {
-      return;
-    }
-    buildWorldFloor();
-    state.mode = data.mode || "sandbox";
-    state.score = data.score || 0;
-    let azulinPlaced = false;
-    for (const item of data.bodies || []) {
-      if (item.kind === "azulin") {
-        if (azulinPlaced) continue;
-        const torso = ensureSingleAzulin(item.x, item.y, {
-          hero: state.mode === "runner",
-        });
-        Body.setAngle(torso, item.angle || 0);
-        azulinPlaced = true;
-      } else if (ALLOWED_SPAWN[item.kind]) {
-        const b = spawnProp(item.kind, item.x, item.y);
-        if (b) {
-          Body.setAngle(b, item.angle || 0);
-          if (item.isStatic) Body.setStatic(b, true);
-        }
-      }
-    }
-    if (!azulinPlaced) {
-      ensureSingleAzulin(160, floorY() - 70, {
-        hero: state.mode === "runner",
-      });
-    }
-    updateHud();
-  }
-
-  // Camera follow in runner + keep Azulín standing
   Events.on(engine, "beforeUpdate", function () {
     keepAzulinUpright();
-
-    if (state.mode === "runner" && state.runnerHero && state.runnerAlive) {
-      const hero = state.runnerHero;
-      Body.setVelocity(hero, { x: Math.max(hero.velocity.x, 3.8), y: hero.velocity.y });
-      Body.setAngularVelocity(hero, hero.angularVelocity * 0.9);
-      state.score = Math.max(state.score, hero.position.x - 120);
-      const targetCam = hero.position.x - render.options.width * 0.3;
-      state.cameraX = Math.max(0, targetCam);
-      layoutCamera();
-      updateHud();
-      if (hero.position.y > floorY() + 120) {
-        state.runnerAlive = false;
-        setTimeout(startRunner, 600);
-      }
-    }
   });
 
-  // UI wiring
-  document.getElementById("tools").addEventListener("click", function (ev) {
-    const t = ev.target.closest("[data-tool]");
-    if (t) {
-      setTool(t.getAttribute("data-tool"));
-      return;
-    }
-  });
-
-  document.getElementById("btnGravity").addEventListener("click", toggleGravity);
-  document.getElementById("btnPause").addEventListener("click", togglePause);
-  document.getElementById("btnClear").addEventListener("click", function () {
-    state.mode = "sandbox";
-    buildWorldFloor();
-    ensureSingleAzulin(160, floorY() - 70);
-    state.cameraX = 0;
-    resize();
-    updateHud();
-  });
-  document.getElementById("btnRunner").addEventListener("click", startRunner);
-  document.getElementById("btnSave").addEventListener("click", function () {
-    localStorage.setItem(SAVE_KEY, serializeWorld());
-    modePill.textContent = "Guardado";
-    setTimeout(updateHud, 800);
-  });
-  document.getElementById("btnLoad").addEventListener("click", function () {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) loadWorld(raw);
-  });
+  document.getElementById("btnRestart").addEventListener("click", restartScene);
 
   document.getElementById("spawnGrid").addEventListener("click", function (ev) {
     const btn = ev.target.closest("[data-spawn]");
@@ -672,12 +501,11 @@
     setTool("spawn");
   });
 
-  // Boot — size first so floorY matches the iPad viewport
-  document.getElementById("btnGravity").classList.add("active");
+  // Boot — gravity always on; size first so floorY matches the iPad viewport
+  engine.gravity.y = 1;
   resize();
   buildWorldFloor();
   ensureSingleAzulin(160, floorY() - 70);
   layoutCamera();
   setTool("hand");
-  updateHud();
 })();
