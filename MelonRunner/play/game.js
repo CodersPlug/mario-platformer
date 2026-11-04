@@ -40,6 +40,8 @@
     cameraX: 0,
     cameraY: 0,
     floorY: 420,
+    azulinParts: [],
+    azulinTorso: null,
   };
 
   const SAVE_KEY = "melon-libre-azulin-v1";
@@ -210,11 +212,24 @@
     }
     state.runnerHero = null;
     state.runnerAlive = false;
+    state.azulinParts = [];
+    state.azulinTorso = null;
   }
 
   function ensureSingleAzulin(x, y, opts) {
     removeAllAzulin();
     return spawnAzulin(x != null ? x : 160, y != null ? y : floorY() - 70, opts || {});
+  }
+
+  function keepAzulinUpright() {
+    const parts = state.azulinParts;
+    if (!parts || !parts.length) return;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!p || p.isStatic) continue;
+      Body.setAngle(p, 0);
+      Body.setAngularVelocity(p, 0);
+    }
   }
 
   function styleLivingPart(color) {
@@ -274,23 +289,29 @@
         deletable: false,
         freezeable: true,
       });
+      // Stay upright: no tumbling when hit / dragged.
+      Body.set(p, { inertia: Infinity, frictionAir: 0.08 });
+      Body.setAngle(p, 0);
+      Body.setAngularVelocity(p, 0);
     }
 
     const constraints = [
-      Constraint.create({ bodyA: head, bodyB: torso, pointA: { x: 0, y: 14 * scale }, pointB: { x: 0, y: -12 * scale }, stiffness: 0.7, damping: 0.1, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: head, bodyB: torso, pointA: { x: 0, y: 14 * scale }, pointB: { x: 0, y: -12 * scale }, stiffness: 1, damping: 0.2, length: 2, render: { visible: false } }),
       Constraint.create({ bodyA: belly, bodyB: torso, stiffness: 1, length: 0, render: { visible: false } }),
-      Constraint.create({ bodyA: legL, bodyB: torso, pointA: { x: 0, y: -8 * scale }, pointB: { x: -6 * scale, y: 12 * scale }, stiffness: 0.55, damping: 0.08, length: 2, render: { visible: false } }),
-      Constraint.create({ bodyA: legR, bodyB: torso, pointA: { x: 0, y: -8 * scale }, pointB: { x: 6 * scale, y: 12 * scale }, stiffness: 0.55, damping: 0.08, length: 2, render: { visible: false } }),
-      Constraint.create({ bodyA: armL, bodyB: torso, pointA: { x: 6 * scale, y: 0 }, pointB: { x: -10 * scale, y: -4 * scale }, stiffness: 0.4, length: 2, render: { visible: false } }),
-      Constraint.create({ bodyA: armR, bodyB: torso, pointA: { x: -6 * scale, y: 0 }, pointB: { x: 10 * scale, y: -4 * scale }, stiffness: 0.4, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: legL, bodyB: torso, pointA: { x: 0, y: -8 * scale }, pointB: { x: -6 * scale, y: 12 * scale }, stiffness: 1, damping: 0.2, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: legR, bodyB: torso, pointA: { x: 0, y: -8 * scale }, pointB: { x: 6 * scale, y: 12 * scale }, stiffness: 1, damping: 0.2, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: armL, bodyB: torso, pointA: { x: 6 * scale, y: 0 }, pointB: { x: -10 * scale, y: -4 * scale }, stiffness: 1, damping: 0.2, length: 2, render: { visible: false } }),
+      Constraint.create({ bodyA: armR, bodyB: torso, pointA: { x: -6 * scale, y: 0 }, pointB: { x: 10 * scale, y: -4 * scale }, stiffness: 1, damping: 0.2, length: 2, render: { visible: false } }),
     ];
 
     Composite.add(engine.world, parts.concat(constraints));
-    Body.setAngularVelocity(torso, 0);
+    state.azulinParts = parts;
+    state.azulinTorso = torso;
     if (opts.hero) {
       state.runnerHero = torso;
       state.runnerAlive = true;
     }
+    keepAzulinUpright();
     return torso;
   }
 
@@ -400,6 +421,7 @@
     const pos = canvasToWorld(clientX, clientY);
     if (state.tool === "spawn") {
       spawnProp(state.spawnKind, pos.x, pos.y);
+      setTool("hand");
       return;
     }
     const hit = bodyAt(pos);
@@ -531,7 +553,7 @@
       Composite.add(engine.world, obst);
     }
 
-    spawnAzulin(120, floorY() - 70, { hero: true });
+    ensureSingleAzulin(120, floorY() - 70, { hero: true });
     updateHud();
     resize();
   }
@@ -590,15 +612,9 @@
     updateHud();
   }
 
-  // Camera follow in runner + buoyancy
+  // Camera follow in runner + keep Azulín standing
   Events.on(engine, "beforeUpdate", function () {
-    // Balloon buoyancy nudge
-    const bodies = Composite.allBodies(engine.world);
-    for (const b of bodies) {
-      if (b.plugin && b.plugin.melon && b.plugin.melon.buoyancy) {
-        Body.applyForce(b, b.position, { x: 0, y: -0.0025 * b.mass });
-      }
-    }
+    keepAzulinUpright();
 
     if (state.mode === "runner" && state.runnerHero && state.runnerAlive) {
       const hero = state.runnerHero;
