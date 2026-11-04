@@ -165,7 +165,7 @@
     const floor = Bodies.rectangle(WORLD_W / 2, fy + thickness / 2, WORLD_W, thickness, {
       isStatic: true,
       friction: 0.9,
-      render: { fillStyle: "#5f8f45", strokeStyle: "#3f6a2c", lineWidth: 2 },
+      render: { fillStyle: "#7fe28a", strokeStyle: "#2f9e55", lineWidth: 3 },
     });
     tag(floor, { kind: "world", deletable: false, freezeable: false });
 
@@ -200,7 +200,14 @@
     state.azulinTorso = null;
   }
 
+  function sfx(name) {
+    if (window.MelonSFX && typeof window.MelonSFX[name] === "function") {
+      window.MelonSFX[name]();
+    }
+  }
+
   function restartScene() {
+    sfx("restart");
     state.cameraX = 0;
     buildWorldFloor();
     ensureSingleAzulin(160, floorY() - 70);
@@ -215,6 +222,7 @@
       return false;
     }
     Composite.remove(engine.world, hit);
+    sfx("erase");
     return true;
   }
 
@@ -234,8 +242,8 @@
     }
   }
 
-  function styleLivingPart(color) {
-    return { fillStyle: color, strokeStyle: "#1b3a5c", lineWidth: 2 };
+  function styleLivingPart(color, stroke) {
+    return { fillStyle: color, strokeStyle: stroke || "#5a3d8a", lineWidth: 3 };
   }
 
   function spawnAzulin(x, y, opts) {
@@ -247,38 +255,38 @@
       restitution: 0.05,
       friction: 0.8,
       density: 0.0012,
-      render: styleLivingPart("#3a8dff"),
+      render: styleLivingPart("#5ab0ff"),
     });
     const torso = Bodies.rectangle(x, y, 22 * scale, 28 * scale, {
       collisionFilter: { group },
-      chamfer: { radius: 6 },
+      chamfer: { radius: 8 },
       density: 0.0015,
-      render: styleLivingPart("#3a8dff"),
+      render: styleLivingPart("#62b6ff"),
     });
     const belly = Bodies.circle(x, y + 4 * scale, 8 * scale, {
       collisionFilter: { group },
       isSensor: true,
-      render: styleLivingPart("#f5e6c8"),
+      render: styleLivingPart("#ffe8a8", "#e0b84a"),
     });
     const legL = Bodies.rectangle(x - 8 * scale, y + 28 * scale, 10 * scale, 20 * scale, {
       collisionFilter: { group },
       density: 0.001,
-      render: styleLivingPart("#e85a4f"),
+      render: styleLivingPart("#ff6eb4", "#d63d88"),
     });
     const legR = Bodies.rectangle(x + 8 * scale, y + 28 * scale, 10 * scale, 20 * scale, {
       collisionFilter: { group },
       density: 0.001,
-      render: styleLivingPart("#e85a4f"),
+      render: styleLivingPart("#ff6eb4", "#d63d88"),
     });
     const armL = Bodies.rectangle(x - 20 * scale, y - 2 * scale, 16 * scale, 8 * scale, {
       collisionFilter: { group },
       density: 0.0008,
-      render: styleLivingPart("#f0f0f0"),
+      render: styleLivingPart("#fff7f0", "#f0b8d0"),
     });
     const armR = Bodies.rectangle(x + 20 * scale, y - 2 * scale, 16 * scale, 8 * scale, {
       collisionFilter: { group },
       density: 0.0008,
-      render: styleLivingPart("#f0f0f0"),
+      render: styleLivingPart("#fff7f0", "#f0b8d0"),
     });
 
     const parts = [torso, head, belly, legL, legR, armL, armR];
@@ -330,7 +338,7 @@
           restitution: 0.05,
           friction: 0.8,
           density: 0.002,
-          render: { fillStyle: "#c48a4a", strokeStyle: "#7a5228", lineWidth: 2 },
+          render: { fillStyle: "#ffb347", strokeStyle: "#e07a20", lineWidth: 3 },
         });
         tag(body, { kind: "crate" });
         break;
@@ -339,7 +347,7 @@
           restitution: 0.85,
           friction: 0.05,
           density: 0.001,
-          render: { fillStyle: "#ff6b6b", strokeStyle: "#9b3030", lineWidth: 2 },
+          render: { fillStyle: "#ff5fa2", strokeStyle: "#d63d88", lineWidth: 3 },
         });
         tag(body, { kind: "ball" });
         break;
@@ -347,7 +355,7 @@
         body = Bodies.rectangle(x, y, 120, 16, {
           friction: 0.7,
           density: 0.0015,
-          render: { fillStyle: "#d7b07a", strokeStyle: "#8a6a3d", lineWidth: 2 },
+          render: { fillStyle: "#ffd24a", strokeStyle: "#e0a800", lineWidth: 3 },
         });
         tag(body, { kind: "plank" });
         break;
@@ -355,16 +363,16 @@
         body = Bodies.polygon(x, y, 3, 28, {
           friction: 0.6,
           density: 0.0012,
-          render: { fillStyle: "#ff9f43", strokeStyle: "#a85b10", lineWidth: 2 },
+          render: { fillStyle: "#ff9f43", strokeStyle: "#e07a20", lineWidth: 3 },
         });
         tag(body, { kind: "cone" });
         break;
       case "barrel":
         body = Bodies.rectangle(x, y, 36, 52, {
-          chamfer: { radius: 8 },
+          chamfer: { radius: 10 },
           friction: 0.5,
           density: 0.0022,
-          render: { fillStyle: "#6c8cff", strokeStyle: "#2f458f", lineWidth: 2 },
+          render: { fillStyle: "#7aa0ff", strokeStyle: "#4568d4", lineWidth: 3 },
         });
         tag(body, { kind: "barrel" });
         break;
@@ -391,6 +399,7 @@
 
   Events.on(mouseConstraint, "startdrag", function () {
     state.didDrag = true;
+    sfx("grab");
     if (state.tool !== "hand") {
       mouseConstraint.constraint.bodyB = null;
       mouseConstraint.body = null;
@@ -398,6 +407,7 @@
   });
 
   Events.on(mouseConstraint, "enddrag", function () {
+    sfx("throw");
     // Keep drag flag briefly so the matching pointerup ignores tap/delete.
     setTimeout(function () {
       state.didDrag = false;
@@ -453,6 +463,7 @@
 
     if (state.tool === "spawn") {
       spawnProp(state.spawnKind, pos.x, pos.y);
+      sfx("place");
       setTool("hand");
       state.lastTap = { t: 0, x: 0, y: 0, id: null };
       return;
@@ -498,8 +509,16 @@
     document.querySelectorAll("#spawnGrid [data-spawn]").forEach(function (b) {
       b.classList.toggle("active", b === btn);
     });
+    sfx("select");
     setTool("spawn");
   });
+
+  // iOS/Safari: unlock audio on first gesture
+  function unlockAudioOnce() {
+    sfx("unlock");
+    window.removeEventListener("pointerdown", unlockAudioOnce, true);
+  }
+  window.addEventListener("pointerdown", unlockAudioOnce, true);
 
   // Boot — gravity always on; size first so floorY matches the iPad viewport
   engine.gravity.y = 1;
