@@ -1,4 +1,4 @@
-/* Cute synthesized SFX for Melon Libre (Web Audio, no external assets). */
+/* Cute synthesized SFX for Azulín (Web Audio, no external assets). */
 (function (global) {
   "use strict";
 

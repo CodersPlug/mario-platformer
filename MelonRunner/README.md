@@ -1,6 +1,6 @@
-# Melon Libre — Azulín
+# Azulín
 
-Sandbox 2D **jugable en el iPad** (GitHub Pages), inspirado en Melon Sandbox: gravedad, física, puppeteering (arrastrar/tirar), spawner, congelar, borrar, ragdoll **Azulín**, modo Runner y guardar/cargar local.
+Sandbox 2D **jugable en el iPad** (GitHub Pages), inspirado en Melon Sandbox: gravedad, física, puppeteering (arrastrar/tirar), spawner con iconos y ragdoll **Azulín**.
 
 No usa IP de Sonic. No requiere la app Melon.
 

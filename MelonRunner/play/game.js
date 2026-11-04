@@ -1,4 +1,4 @@
-/* Melon Libre — web sandbox inspired by Melon Sandbox physics + puppeteering.
+/* Azulín — kids physics sandbox (inspired by Melon Sandbox).
    Original character Azulín (no Sonic IP). Touch-first for iPad / GitHub Pages. */
 (function () {
   "use strict";
