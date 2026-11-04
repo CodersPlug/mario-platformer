@@ -59,6 +59,15 @@ body {
   flex: 1;
 }
 
+.brand strong {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ff4f9a;
+  text-shadow: 0 2px 0 #ffe08f;
+}
+
 .tools {
   display: flex;
   flex-wrap: wrap;
