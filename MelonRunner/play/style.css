@@ -100,6 +100,23 @@ body {
   border-color: rgba(232, 90, 79, 0.45);
 }
 
+.tools button.icon-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+  color: var(--text);
+}
+
+.tools button.icon-tool svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+  pointer-events: none;
+}
+
 .stage-wrap {
   position: relative;
   min-height: 0;
@@ -195,6 +212,16 @@ body {
     min-width: 34px;
     padding: 0 10px;
     font-size: 0.78rem;
+  }
+
+  .tools button.icon-tool {
+    width: 40px;
+    min-width: 40px;
+  }
+
+  .tools button.icon-tool svg {
+    width: 22px;
+    height: 22px;
   }
 
   .dock {
