@@ -34,10 +34,13 @@
     azulinTorso: null,
     azulinLegs: { L: null, R: null },
     azulinArms: { L: null, R: null },
+    azulinScale: 1,
     didDrag: false,
     draggingAzulin: false,
     walkPhase: 0,
     lastStepSign: 0,
+    dragSpeed: 0,
+    prevMouse: null,
     lastTap: { t: 0, x: 0, y: 0, id: null },
     walls: null,
   };
@@ -299,7 +302,53 @@
     }
   }
 
-  /** Legs walk/run while Azulín is dragged (or moving fast); torso stays upright. */
+  /** Hip / shoulder attach points on torso (match spawn constraints). */
+  function limbAttach(scale) {
+    return {
+      legLocal: { x: 0, y: -8 * scale },
+      armLLocal: { x: 6 * scale, y: 0 },
+      armRLocal: { x: -6 * scale, y: 0 },
+      hipY: 12 * scale,
+      hipX: 6 * scale,
+      shoulderY: -4 * scale,
+      shoulderX: 10 * scale,
+    };
+  }
+
+  /** Place a limb so its joint (local attach) sits on the torso attach and swings around it. */
+  function poseLimb(limb, jointX, jointY, localAttach, angle) {
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const lx = localAttach.x;
+    const ly = localAttach.y;
+    // worldCenter = joint - rotate(localAttach, angle)
+    const cx = jointX - (lx * c - ly * s);
+    const cy = jointY - (lx * s + ly * c);
+    Body.setAngle(limb, angle);
+    Body.setPosition(limb, { x: cx, y: cy });
+    Body.setAngularVelocity(limb, 0);
+    Body.setVelocity(limb, { x: 0, y: 0 });
+  }
+
+  /** Sample drag speed from mouse motion (more reliable than body velocity while grabbed). */
+  function sampleDragSpeed() {
+    if (!state.draggingAzulin || !mouse) {
+      state.prevMouse = null;
+      state.dragSpeed *= 0.85;
+      if (state.dragSpeed < 0.05) state.dragSpeed = 0;
+      return state.dragSpeed;
+    }
+    const mx = mouse.position.x;
+    const my = mouse.position.y;
+    if (state.prevMouse) {
+      const instant = Math.hypot(mx - state.prevMouse.x, my - state.prevMouse.y);
+      state.dragSpeed = state.dragSpeed * 0.55 + instant * 0.45;
+    }
+    state.prevMouse = { x: mx, y: my };
+    return state.dragSpeed;
+  }
+
+  /** Legs walk/run while Azulín is dragged; faster drag → run stride + brighter steps. */
   function animateAzulinGait() {
     const torso = state.azulinTorso;
     const legL = state.azulinLegs.L;
@@ -315,31 +364,39 @@
       const p = state.azulinParts[i];
       if (!p || p === legL || p === legR || p === armL || p === armR) continue;
       Body.setAngle(p, 0);
+      Body.setAngularVelocity(p, 0);
     }
 
-    const speed = Math.hypot(torso.velocity.x, torso.velocity.y);
-    const active = state.draggingAzulin && speed > 0.25;
+    const scale = state.azulinScale || 1;
+    const a = limbAttach(scale);
+    const tx = torso.position.x;
+    const ty = torso.position.y;
+
+    const speed = sampleDragSpeed();
+    const active = state.draggingAzulin && speed > 0.35;
     if (!active) {
-      Body.setAngle(legL, 0);
-      Body.setAngle(legR, 0);
-      if (armL) Body.setAngle(armL, 0);
-      if (armR) Body.setAngle(armR, 0);
+      poseLimb(legL, tx - a.hipX, ty + a.hipY, a.legLocal, 0);
+      poseLimb(legR, tx + a.hipX, ty + a.hipY, a.legLocal, 0);
+      if (armL) poseLimb(armL, tx - a.shoulderX, ty + a.shoulderY, a.armLLocal, 0);
+      if (armR) poseLimb(armR, tx + a.shoulderX, ty + a.shoulderY, a.armRLocal, 0);
+      state.lastStepSign = 0;
       return;
     }
 
-    const running = speed >= 5.5;
-    const stride = running ? 0.55 : 0.32;
-    const phaseStep = speed * (running ? 0.2 : 0.12);
+    // px/frame thresholds: walk vs run (big strides so kids clearly see it)
+    const running = speed >= 3.2;
+    const stride = running ? 1.15 : 0.72;
+    const phaseStep = Math.min(0.62, speed * (running ? 0.32 : 0.18));
     state.walkPhase += phaseStep;
     const wave = Math.sin(state.walkPhase);
     const swing = wave * stride;
 
-    Body.setAngle(legL, swing);
-    Body.setAngle(legR, -swing);
-    if (armL) Body.setAngle(armL, -swing * 0.55);
-    if (armR) Body.setAngle(armR, swing * 0.55);
+    poseLimb(legL, tx - a.hipX, ty + a.hipY, a.legLocal, swing);
+    poseLimb(legR, tx + a.hipX, ty + a.hipY, a.legLocal, -swing);
+    if (armL) poseLimb(armL, tx - a.shoulderX, ty + a.shoulderY, a.armLLocal, -swing * 0.7);
+    if (armR) poseLimb(armR, tx + a.shoulderX, ty + a.shoulderY, a.armRLocal, swing * 0.7);
 
-    // Footstep on each half-cycle
+    // Footstep on each half-cycle (when a foot "lands")
     const sign = wave >= 0 ? 1 : -1;
     if (sign !== state.lastStepSign && state.lastStepSign !== 0) {
       sfx("step", running);
@@ -353,7 +410,9 @@
 
   function spawnAzulin(x, y, opts) {
     opts = opts || {};
-    const scale = opts.scale || 1;
+    // Slightly larger default so kids can grab him on iPad.
+    const scale = opts.scale || 1.35;
+    state.azulinScale = scale;
     const group = Body.nextGroup(true);
     const head = Bodies.circle(x, y - 28 * scale, 16 * scale, {
       collisionFilter: { group },
@@ -534,13 +593,11 @@
     state.didDrag = true;
     const body = (ev && ev.body) || mouseConstraint.body;
     state.draggingAzulin = isAzulinBody(body);
-    if (state.draggingAzulin) {
-      state.walkPhase = 0;
-      state.lastStepSign = 0;
-      sfx("grab");
-    } else {
-      sfx("grab");
-    }
+    state.dragSpeed = 0;
+    state.prevMouse = null;
+    state.walkPhase = 0;
+    state.lastStepSign = 0;
+    sfx("grab");
     if (state.tool !== "hand") {
       mouseConstraint.constraint.bodyB = null;
       mouseConstraint.body = null;
@@ -549,10 +606,14 @@
   });
 
   Events.on(mouseConstraint, "enddrag", function () {
+    // Throw SFX for props; Azulín already played footsteps while dragged.
     if (!state.draggingAzulin) {
       sfx("throw");
     }
     state.draggingAzulin = false;
+    state.dragSpeed = 0;
+    state.prevMouse = null;
+    state.lastStepSign = 0;
     // Keep drag flag briefly so the matching pointerup ignores tap/delete.
     setTimeout(function () {
       state.didDrag = false;
@@ -583,6 +644,14 @@
     if (mouseConstraint) {
       mouseConstraint.collisionFilter.mask = tool === "hand" ? 0xffffffff : 0;
     }
+    // Hand mode: no spawn icon looks "selected" (avoids accidental spawn taps).
+    document.querySelectorAll("#spawnGrid [data-spawn]").forEach(function (b) {
+      if (tool === "hand") {
+        b.classList.remove("active");
+      } else {
+        b.classList.toggle("active", b.getAttribute("data-spawn") === state.spawnKind);
+      }
+    });
   }
 
   function isDoubleTap(now, pos, hit) {
@@ -641,7 +710,8 @@
     { passive: false }
   );
 
-  Events.on(engine, "beforeUpdate", function () {
+  // afterUpdate: pose wins over constraint solver so legs visibly swing.
+  Events.on(engine, "afterUpdate", function () {
     animateAzulinGait();
   });
 
@@ -672,4 +742,30 @@
   ensureSingleAzulin(160, floorY() - 70);
   layoutCamera();
   setTool("hand");
+
+  // Debug/test bridge (Playwright + console)
+  window.__azulin = {
+    snapshot: function () {
+      const L = state.azulinLegs.L;
+      const R = state.azulinLegs.R;
+      const t = state.azulinTorso;
+      return {
+        tool: state.tool,
+        dragging: state.draggingAzulin,
+        dragSpeed: state.dragSpeed,
+        walkPhase: state.walkPhase,
+        legL: L ? L.angle : null,
+        legR: R ? R.angle : null,
+        torso: t ? { x: t.position.x, y: t.position.y } : null,
+      };
+    },
+    worldToClient: function (wx, wy) {
+      const rect = canvas.getBoundingClientRect();
+      const x =
+        ((wx - state.cameraX) / render.options.width) * rect.width + rect.left;
+      const y =
+        ((wy - state.cameraY) / render.options.height) * rect.height + rect.top;
+      return { x, y };
+    },
+  };
 })();

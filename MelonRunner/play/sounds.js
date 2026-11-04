@@ -65,11 +65,12 @@
     /** Footstep: pass true for run (faster / brighter). */
     step: function (running) {
       if (running) {
-        tone(220, 0.05, "triangle", 0.07);
-        tone(440, 0.04, "sine", 0.04, 0.02);
+        tone(200, 0.045, "triangle", 0.09);
+        tone(380, 0.035, "square", 0.035, 0.015);
+        tone(520, 0.03, "sine", 0.03, 0.03);
       } else {
-        tone(160, 0.06, "sine", 0.06);
-        tone(240, 0.05, "triangle", 0.035, 0.025);
+        tone(140, 0.07, "sine", 0.08);
+        tone(210, 0.055, "triangle", 0.05, 0.02);
       }
     },
   };
