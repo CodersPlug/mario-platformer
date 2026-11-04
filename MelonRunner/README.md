@@ -2,6 +2,9 @@
 
 Sandbox 2D **jugable en el iPad** (GitHub Pages), inspirado en Melon Sandbox: gravedad, física, puppeteering (arrastrar/tirar), spawner con iconos y ragdoll **Azulín**.
 
+**Programa cognitivo (Polgár + creación de juegos):**  
+[`programa-polgar-azulin.md`](programa-polgar-azulin.md) · tablero: [`tablero-semanal.md`](tablero-semanal.md)
+
 No usa IP de Sonic. No requiere la app Melon.
 
 ## Jugar en el iPad
@@ -20,7 +23,7 @@ Abrí `http://localhost:8080`.
 
 ## Qué imita de Melon
 
-| Característica Melon | En Melon Libre |
+| Característica Melon | En Azulín |
 |----------------------|----------------|
 | Física 2D + gravedad | Matter.js, botón Gravedad on/off |
 | Puppeteering / drag | Herramienta **Mano** (dedo / mouse), impulso al soltar |
