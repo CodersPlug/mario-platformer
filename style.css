@@ -1,0 +1,252 @@
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap");
+
+:root {
+  --bg0: #ffe8f3;
+  --bg1: #d9f4ff;
+  --panel: rgba(255, 255, 255, 0.88);
+  --line: rgba(255, 105, 180, 0.28);
+  --text: #3b2a55;
+  --muted: #7a6a92;
+  --accent: #ff5fa2;
+  --accent2: #46d6c2;
+  --sun: #ffd24a;
+  --chip: #fff6fb;
+  --shadow: 0 8px 0 rgba(255, 95, 162, 0.18);
+  font-family: "Fredoka", "Trebuchet MS", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background:
+    radial-gradient(900px 500px at 12% -8%, #fff4a8 0%, transparent 55%),
+    radial-gradient(800px 480px at 100% 0%, #ffb7e0 0%, transparent 50%),
+    radial-gradient(700px 420px at 50% 110%, #9af0e0 0%, transparent 45%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  color: var(--text);
+  overflow: hidden;
+}
+
+#app {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border-bottom: 3px solid #ff8ec8;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(255, 120, 180, 0.18);
+}
+
+.brand {
+  min-width: 0;
+  flex: 1;
+}
+
+.brand strong {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ff4f9a;
+  text-shadow: 0 2px 0 #ffe08f;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.tools button,
+.dock button,
+.spawn-grid button {
+  appearance: none;
+  border: 3px solid #ffb3d9;
+  background: linear-gradient(180deg, #ffffff, #ffe9f5);
+  color: var(--text);
+  border-radius: 18px;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tools button:active,
+.spawn-grid button:active {
+  transform: translateY(2px) scale(0.97);
+  box-shadow: 0 3px 0 rgba(255, 95, 162, 0.18);
+}
+
+.spawn-grid button.active {
+  outline: 3px solid #46d6c2;
+  border-color: #46d6c2;
+  background: linear-gradient(180deg, #eafffb, #c8fff4);
+  box-shadow: 0 8px 0 rgba(70, 214, 194, 0.22);
+}
+
+.tools button.icon-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  min-width: 52px;
+  padding: 0;
+  color: #ff4f9a;
+  border-color: #ffd24a;
+  background: linear-gradient(180deg, #fff7c2, #ffe08a);
+  box-shadow: 0 8px 0 rgba(255, 180, 40, 0.28);
+}
+
+.tools button.icon-tool svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+  pointer-events: none;
+}
+
+.stage-wrap {
+  position: relative;
+  min-height: 0;
+}
+
+#world {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background:
+    radial-gradient(circle at 18% 18%, #fff7b0 0 28px, transparent 29px),
+    radial-gradient(circle at 78% 22%, #ffffffcc 0 22px, transparent 23px),
+    radial-gradient(circle at 62% 14%, #ffffff99 0 14px, transparent 15px),
+    linear-gradient(180deg, #7ed7ff 0%, #c8f0ff 38%, #b6f5a8 38.2%, #7fe28a 72%, #57c96f 100%);
+  cursor: grab;
+  border-radius: 0;
+}
+
+#world:active {
+  cursor: grabbing;
+}
+
+.dock {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 3px solid #46d6c2;
+  box-shadow: 0 -8px 20px rgba(70, 214, 194, 0.15);
+}
+
+.spawn-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.spawn-grid button.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  min-height: 64px;
+}
+
+.spawn-grid button.icon-btn[data-spawn="barrel"] {
+  background: linear-gradient(180deg, #e8f0ff, #c5d8ff);
+  border-color: #7aa0ff;
+}
+.spawn-grid button.icon-btn[data-spawn="crate"] {
+  background: linear-gradient(180deg, #ffe8c8, #ffc98a);
+  border-color: #f0a04b;
+}
+.spawn-grid button.icon-btn[data-spawn="ball"] {
+  background: linear-gradient(180deg, #ffd6e8, #ff8fbf);
+  border-color: #ff5fa2;
+}
+.spawn-grid button.icon-btn[data-spawn="plank"] {
+  background: linear-gradient(180deg, #fff0c8, #ffe08a);
+  border-color: #ffc94a;
+}
+.spawn-grid button.icon-btn[data-spawn="cone"] {
+  background: linear-gradient(180deg, #ffe5cc, #ffb347);
+  border-color: #ff9f43;
+}
+
+.spawn-grid button.icon-btn svg {
+  width: 40px;
+  height: 40px;
+  display: block;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .spawn-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 720px) {
+  .topbar {
+    padding: 6px 8px;
+  }
+
+  .tools {
+    gap: 6px;
+  }
+
+  .tools button {
+    min-height: 38px;
+    min-width: 38px;
+    padding: 0 10px;
+    font-size: 0.78rem;
+  }
+
+  .tools button.icon-tool {
+    width: 42px;
+    min-width: 42px;
+  }
+
+  .tools button.icon-tool svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .dock {
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .spawn-grid {
+    gap: 6px;
+  }
+
+  .spawn-grid button.icon-btn {
+    min-height: 48px;
+    padding: 6px;
+  }
+
+  .spawn-grid button.icon-btn svg {
+    width: 30px;
+    height: 30px;
+  }
+}
