@@ -47,8 +47,10 @@
 
   const DOUBLE_TAP_MS = 320;
   const DOUBLE_TAP_DIST = 36;
-  const WALL_T = 72;
+  // Thick floor so fast throws / drags cannot tunnel through.
+  const WALL_T = 160;
   const WALL_BOUNCE = 0.92;
+  const FLOOR_SURFACE_PAD = 0.5;
   let mouseConstraint = null;
   let mouse = null;
 
@@ -58,6 +60,10 @@
 
   const engine = Engine.create({ enableSleeping: true });
   engine.gravity.y = 1;
+  // More solver passes → fewer bodies sinking into the static floor.
+  engine.positionIterations = 12;
+  engine.velocityIterations = 10;
+  engine.constraintIterations = 4;
 
   const render = Render.create({
     canvas,
@@ -166,12 +172,13 @@
     return body && body.plugin && body.plugin.melon && body.plugin.melon.kind === "world";
   }
 
-  function makeWall(x, y, w, h, fill) {
+  function makeWall(x, y, w, h, fill, opts) {
+    opts = opts || {};
     const wall = Bodies.rectangle(x, y, w, h, {
       isStatic: true,
-      restitution: WALL_BOUNCE,
-      friction: 0.05,
-      frictionStatic: 0.05,
+      restitution: opts.restitution != null ? opts.restitution : WALL_BOUNCE,
+      friction: opts.friction != null ? opts.friction : 0.05,
+      frictionStatic: opts.frictionStatic != null ? opts.frictionStatic : 0.05,
       render: {
         fillStyle: fill || "#ffb7e0",
         strokeStyle: "#ff7eb6",
@@ -207,7 +214,12 @@
 
     removeWalls();
 
-    const floor = makeWall(midX, fy + WALL_T / 2, w + WALL_T * 2, WALL_T, "#7fe28a");
+    // Floor top surface stays at fy; body is deep so nothing tunnels under.
+    const floor = makeWall(midX, fy + WALL_T / 2, w + WALL_T * 2, WALL_T, "#7fe28a", {
+      restitution: 0.15,
+      friction: 0.9,
+      frictionStatic: 1,
+    });
     floor.render.strokeStyle = "#2f9e55";
     const ceiling = makeWall(midX, cy - WALL_T / 2, w + WALL_T * 2, WALL_T, "#fff4a8");
     const left = makeWall(cx - WALL_T / 2, midY, WALL_T, h + WALL_T * 2, "#ffb7e0");
@@ -215,6 +227,31 @@
 
     state.walls = { floor: floor, ceiling: ceiling, left: left, right: right };
     Composite.add(engine.world, [floor, ceiling, left, right]);
+  }
+
+  /** Hard stop: no dynamic body may cross the floor surface (drag / tunneling). */
+  function containBodiesAboveFloor() {
+    const surface = floorY() - FLOOR_SURFACE_PAD;
+    const bodies = Composite.allBodies(engine.world);
+    for (let i = 0; i < bodies.length; i++) {
+      const body = bodies[i];
+      if (!body || body.isStatic) continue;
+      const overflow = body.bounds.max.y - surface;
+      if (overflow <= 0) continue;
+      Body.translate(body, { x: 0, y: -overflow });
+      if (body.velocity.y > 0) {
+        Body.setVelocity(body, { x: body.velocity.x, y: 0 });
+      }
+    }
+  }
+
+  /** Keep the mouse grab target on / above the floor so drag cannot pull through. */
+  function clampMouseAboveFloor() {
+    if (!mouse) return;
+    const limit = floorY() - 8;
+    if (mouse.position.y > limit) {
+      mouse.position.y = limit;
+    }
   }
 
   function buildWorldFloor() {
@@ -710,9 +747,15 @@
     { passive: false }
   );
 
-  // afterUpdate: pose wins over constraint solver so legs visibly swing.
+  Events.on(engine, "beforeUpdate", function () {
+    clampMouseAboveFloor();
+  });
+
+  // afterUpdate: pose wins over constraint solver so legs visibly swing;
+  // then clamp so nothing (props / Azulín) can sink through the floor.
   Events.on(engine, "afterUpdate", function () {
     animateAzulinGait();
+    containBodiesAboveFloor();
   });
 
   document.getElementById("btnRestart").addEventListener("click", restartScene);
@@ -745,6 +788,29 @@
 
   // Debug/test bridge (Playwright + console)
   window.__azulin = {
+    floorY: function () {
+      return floorY();
+    },
+    spawnProp: function (kind, x, y) {
+      return spawnProp(kind, x, y);
+    },
+    propBounds: function () {
+      const fy = floorY();
+      const out = [];
+      const bodies = Composite.allBodies(engine.world);
+      for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        if (!b || b.isStatic) continue;
+        const meta = b.plugin && b.plugin.melon;
+        out.push({
+          kind: meta ? meta.kind : "?",
+          maxY: b.bounds.max.y,
+          minY: b.bounds.min.y,
+          throughFloor: b.bounds.max.y > fy + 1,
+        });
+      }
+      return { floorY: fy, bodies: out };
+    },
     snapshot: function () {
       const L = state.azulinLegs.L;
       const R = state.azulinLegs.R;
@@ -757,6 +823,7 @@
         legL: L ? L.angle : null,
         legR: R ? R.angle : null,
         torso: t ? { x: t.position.x, y: t.position.y } : null,
+        floorY: floorY(),
       };
     },
     worldToClient: function (wx, wy) {
