@@ -34,11 +34,13 @@
     azulinTorso: null,
     didDrag: false,
     lastTap: { t: 0, x: 0, y: 0, id: null },
+    walls: null,
   };
 
-  const WORLD_W = 4000;
   const DOUBLE_TAP_MS = 320;
   const DOUBLE_TAP_DIST = 36;
+  const WALL_T = 72;
+  const WALL_BOUNCE = 0.92;
   let mouseConstraint = null;
   let mouse = null;
 
@@ -91,6 +93,7 @@
       max: { x: state.cameraX + w, y: camTop + h },
     });
     syncMouseToCamera();
+    syncBounds();
   }
 
   function resize() {
@@ -155,27 +158,68 @@
     return body && body.plugin && body.plugin.melon && body.plugin.melon.kind === "world";
   }
 
+  function makeWall(x, y, w, h, fill) {
+    const wall = Bodies.rectangle(x, y, w, h, {
+      isStatic: true,
+      restitution: WALL_BOUNCE,
+      friction: 0.05,
+      frictionStatic: 0.05,
+      render: {
+        fillStyle: fill || "#ffb7e0",
+        strokeStyle: "#ff7eb6",
+        lineWidth: 2,
+      },
+    });
+    tag(wall, { kind: "world", deletable: false, freezeable: false });
+    return wall;
+  }
+
+  function removeWalls() {
+    if (!state.walls) return;
+    const list = [
+      state.walls.floor,
+      state.walls.ceiling,
+      state.walls.left,
+      state.walls.right,
+    ];
+    for (let i = 0; i < list.length; i++) {
+      if (list[i]) Composite.remove(engine.world, list[i]);
+    }
+    state.walls = null;
+  }
+
+  function placeBoundsWalls() {
+    const w = Math.max(320, render.options.width || 800);
+    const h = Math.max(220, render.options.height || 500);
+    const fy = floorY();
+    const cx = state.cameraX;
+    const cy = state.cameraY || 0;
+    const midX = cx + w / 2;
+    const midY = cy + h / 2;
+
+    removeWalls();
+
+    const floor = makeWall(midX, fy + WALL_T / 2, w + WALL_T * 2, WALL_T, "#7fe28a");
+    floor.render.strokeStyle = "#2f9e55";
+    const ceiling = makeWall(midX, cy - WALL_T / 2, w + WALL_T * 2, WALL_T, "#fff4a8");
+    const left = makeWall(cx - WALL_T / 2, midY, WALL_T, h + WALL_T * 2, "#ffb7e0");
+    const right = makeWall(cx + w + WALL_T / 2, midY, WALL_T, h + WALL_T * 2, "#9af0e0");
+
+    state.walls = { floor: floor, ceiling: ceiling, left: left, right: right };
+    Composite.add(engine.world, [floor, ceiling, left, right]);
+  }
+
   function buildWorldFloor() {
     Composite.clear(engine.world, false);
     // Composite.clear removes the mouse constraint — put it back.
     if (mouseConstraint) Composite.add(engine.world, mouseConstraint);
+    state.walls = null;
+    placeBoundsWalls();
+  }
 
-    const thickness = 80;
-    const fy = floorY();
-    const floor = Bodies.rectangle(WORLD_W / 2, fy + thickness / 2, WORLD_W, thickness, {
-      isStatic: true,
-      friction: 0.9,
-      render: { fillStyle: "#7fe28a", strokeStyle: "#2f9e55", lineWidth: 3 },
-    });
-    tag(floor, { kind: "world", deletable: false, freezeable: false });
-
-    const left = Bodies.rectangle(-40, fy - 200, 80, 800, {
-      isStatic: true,
-      render: { visible: false },
-    });
-    tag(left, { kind: "world", deletable: false });
-
-    Composite.add(engine.world, [floor, left]);
+  /** Keep bounce walls glued to the visible playfield. */
+  function syncBounds() {
+    placeBoundsWalls();
   }
 
   function removeAllAzulin() {
@@ -329,14 +373,31 @@
     cone: true,
   };
 
+  function clampInPlayfield(x, y, pad) {
+    const p = pad || 40;
+    const w = render.options.width || 800;
+    const h = render.options.height || 500;
+    const minX = state.cameraX + p;
+    const maxX = state.cameraX + w - p;
+    const minY = state.cameraY + p;
+    const maxY = floorY() - p;
+    return {
+      x: Math.max(minX, Math.min(maxX, x)),
+      y: Math.max(minY, Math.min(maxY, y)),
+    };
+  }
+
   function spawnProp(kind, x, y) {
     if (!ALLOWED_SPAWN[kind]) return null;
+    const c = clampInPlayfield(x, y, 36);
+    x = c.x;
+    y = c.y;
     let body;
     switch (kind) {
       case "crate":
         body = Bodies.rectangle(x, y, 48, 48, {
-          restitution: 0.05,
-          friction: 0.8,
+          restitution: 0.55,
+          friction: 0.35,
           density: 0.002,
           render: { fillStyle: "#ffb347", strokeStyle: "#e07a20", lineWidth: 3 },
         });
@@ -344,8 +405,8 @@
         break;
       case "ball":
         body = Bodies.circle(x, y, 22, {
-          restitution: 0.85,
-          friction: 0.05,
+          restitution: 0.95,
+          friction: 0.02,
           density: 0.001,
           render: { fillStyle: "#ff5fa2", strokeStyle: "#d63d88", lineWidth: 3 },
         });
@@ -353,7 +414,8 @@
         break;
       case "plank":
         body = Bodies.rectangle(x, y, 120, 16, {
-          friction: 0.7,
+          restitution: 0.45,
+          friction: 0.35,
           density: 0.0015,
           render: { fillStyle: "#ffd24a", strokeStyle: "#e0a800", lineWidth: 3 },
         });
@@ -361,7 +423,8 @@
         break;
       case "cone":
         body = Bodies.polygon(x, y, 3, 28, {
-          friction: 0.6,
+          restitution: 0.5,
+          friction: 0.3,
           density: 0.0012,
           render: { fillStyle: "#ff9f43", strokeStyle: "#e07a20", lineWidth: 3 },
         });
@@ -370,7 +433,8 @@
       case "barrel":
         body = Bodies.rectangle(x, y, 36, 52, {
           chamfer: { radius: 10 },
-          friction: 0.5,
+          restitution: 0.6,
+          friction: 0.25,
           density: 0.0022,
           render: { fillStyle: "#7aa0ff", strokeStyle: "#4568d4", lineWidth: 3 },
         });
