@@ -11,15 +11,18 @@ Leyenda de modalidades: **D** digital · **F** físico · **H** híbrido.
 
 ### D1 — Azulín
 
+Una ficha digital más del catálogo (no es el laboratorio principal del programa).
+
 | | |
 |--|--|
 | **Modalidad** | Digital |
 | **Pilares** | Lógica, mate, música, idiomas, alimentación (según misión) |
 | **Materiales** | iPad · [Azulín](https://codersplug.github.io/mario-platformer/) |
-| **Reglas** | Arrastrar / tirar / colocar props del dock. Reiniciar con el ícono. No atravesar el piso (ya está). Una misión = una consigna. |
+| **Reglas** | Arrastrar / tirar / colocar props del dock. Reiniciar con el ícono. Una misión = una consigna. Intercambiable por D2/D3 u otra app. |
 | **Éxito** | Cumplir la consigna del día (ej. exactamente 3 objetos; 2 rebotes; nombrar en L2 al colocar). |
 | **Más fácil** | Solo juego libre 8 min + 1 objeto. |
 | **Más dura** | 2 reglas encadenadas (“primero cono, después pelota”). |
+| **Sin iPad** | Usar F2 (conteo/patrones) o F6 (hipótesis) con la misma consigna. |
 
 Misiones rápidas: exactamente N piezas · pelota toca pared y vuelve · “plato” de 3 colores · 3 tiros al ritmo · solo colocar si dice la palabra L2.
 
@@ -31,8 +34,8 @@ Misiones rápidas: exactamente N piezas · pelota toca pared y vuelve · “plat
 |--|--|
 | **Modalidad** | Digital |
 | **Pilares** | Música, lógica |
-| **Materiales** | iPad con Azulín (SFX) o solo voz + palmadas frente a la pantalla apagada si no querés jugar sandbox |
-| **Reglas** | Coach marca un patrón (palmada-palmada-pausa). Ella lo ecoa. Luego, si Azulín está abierto, cada tiro sigue el patrón. |
+| **Materiales** | Voz + palmadas; opcional iPad con SFX de cualquier app (Azulín u otra) |
+| **Reglas** | Coach marca un patrón (palmada-palmada-pausa). Ella lo ecoa. Si hay app abierta, cada acción sigue el patrón. |
 | **Éxito** | Repetir 3 patrones seguidos sin ayuda. |
 | **Más fácil** | Solo 1 patrón de 2 golpes. |
 | **Más dura** | Ella inventa el patrón y el coach lo ecoa. |
@@ -149,11 +152,11 @@ Usar recién cuando el oficio esté en nivel D (ciclo avanzado).
 |--|--|
 | **Modalidad** | Híbrido |
 | **Pilares** | Alimentación, hábitos |
-| **Materiales** | Snack/comida con color · sticker · iPad Azulín |
-| **Reglas** | 1) Completar el snack/hábito manzana. 2) Pegar sticker. 3) “Desbloquear” 3–8 min en Azulín con 1 misión corta. |
-| **Éxito** | Snack + sticker + misión digital corta hecha. |
-| **Más fácil** | Solo snack + 3 min libres Azulín. |
-| **Más dura** | Ella elige la misión digital después del sticker. |
+| **Materiales** | Snack/comida con color · sticker · (opcional) cualquier ficha digital |
+| **Reglas** | 1) Completar el snack/hábito manzana. 2) Pegar sticker. 3) Opcional: 3–8 min de **una** ficha D con 1 misión corta. |
+| **Éxito** | Snack + sticker (+ misión digital si hubo pantalla). |
+| **Más fácil** | Solo snack + sticker. |
+| **Más dura** | Ella elige qué juego digital desbloquear. |
 | **Sin iPad** | Quedarse en F3 + sticker (cuenta como físico). |
 
 ---
@@ -164,8 +167,8 @@ Usar recién cuando el oficio esté en nivel D (ciclo avanzado).
 |--|--|
 | **Modalidad** | Híbrido |
 | **Pilares** | Lógica, oficio |
-| **Materiales** | Piezas físicas (bloques/almohadones) · foto (opcional) · Azulín o papel |
-| **Reglas** | 1) Armar algo real. 2) Decir la regla (“si toco la torre, se cae”). 3) Recrear o narrar en Azulín / dibujar la regla. |
+| **Materiales** | Piezas físicas (bloques/almohadones) · foto (opcional) · papel o cualquier app |
+| **Reglas** | 1) Armar algo real. 2) Decir la regla (“si toco la torre, se cae”). 3) Dibujar, narrar o recrear en digital. |
 | **Éxito** | Construcción + regla dicha en voz alta + registro (foto, dibujo o escena). |
 | **Más fácil** | Solo construcción + 1 frase. |
 | **Más dura** | Dos reglas y enseñárselas al coach. |
@@ -179,8 +182,8 @@ Usar recién cuando el oficio esté en nivel D (ciclo avanzado).
 |--|--|
 | **Modalidad** | Híbrido |
 | **Pilares** | Idiomas |
-| **Materiales** | 3 objetos reales · iPad Azulín (pelota/caja/etc.) |
-| **Reglas** | Tocar el objeto real, decir nombre L2, colocar el equivalente en Azulín (o señalar si no hay equivalente exacto). |
+| **Materiales** | 3 objetos reales · (opcional) app para “colocar” equivalentes |
+| **Reglas** | Tocar el objeto real, decir nombre L2; si hay app, colocar el equivalente (si no, dibujar o señalar). |
 | **Éxito** | 3 objetos nombrados y “colocados” / señalados. |
 | **Más fácil** | 2 objetos; coach dice primero. |
 | **Más dura** | Frase corta en L2 (“red ball”). |
@@ -194,8 +197,8 @@ Usar recién cuando el oficio esté en nivel D (ciclo avanzado).
 |--|--|
 | **Modalidad** | Híbrido |
 | **Pilares** | Música |
-| **Materiales** | Palmadas/voz · Azulín |
-| **Reglas** | Coach (o ella) hace 1-2-3 palmadas; en cada palmada ella suelta/tira un objeto en Azulín. |
+| **Materiales** | Palmadas/voz · (opcional) juego digital del día |
+| **Reglas** | Coach (o ella) hace 1-2-3 palmadas; en cada palmada ella hace una acción en el juego digital (o tira un peluche si no hay app). |
 | **Éxito** | 3 tiros alineados al ritmo sin adelantarse. |
 | **Más fácil** | Ritmo muy lento; 2 tiros. |
 | **Más dura** | Ella crea la partitura (silencio + golpe). |
@@ -208,6 +211,6 @@ Usar recién cuando el oficio esté en nivel D (ciclo avanzado).
 | Si hoy querés… | Empezá por |
 |----------------|------------|
 | Cero pantalla | F1–F6 |
-| Solo iPad | D1 o D2 |
+| Solo iPad | Cualquier D (rotar; no default a D1) |
 | Unir snack / casa + juego | H1 o H3 |
 | Que ella cree | Sábado: cualquier ficha en modo “inventá vos la regla” |

@@ -9,7 +9,7 @@ Humor: 1 = resistió · 2 = neutro · 3 = pidió más / rió
 | Día | Sesión (S/N) | Min | Modalidad | Juego (ID o nombre) | Pantalla (S/N) | Pilar | Misión OK | Humor | Nota |
 |-----|--------------|-----|-----------|---------------------|----------------|-------|-----------|-------|------|
 | Lun | | | F | | N | Lógica | | | |
-| Mar | | | D | Azulín (D1) | S | Mate | | | |
+| Mar | | | D | (rotar D1/D2/D3) | | Mate | | | |
 | Mié | | | H | | | Idiomas | | | |
 | Jue | | | F | | N | Música | | | |
 | Vie | | | H | | | Alimentación | | | |

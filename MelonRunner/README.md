@@ -4,7 +4,7 @@ Sandbox 2D **jugable en el iPad** (GitHub Pages), inspirado en Melon Sandbox: gr
 
 **Programa cognitivo Polgár (juegos digitales, físicos e híbridos):**  
 [`programa-polgar.md`](programa-polgar.md) · catálogo: [`catalogo-juegos.md`](catalogo-juegos.md) · tablero: [`tablero-semanal.md`](tablero-semanal.md)  
-Azulín es el laboratorio digital principal, no todo el programa.
+Azulín es **una** ficha digital del catálogo (D1), no el laboratorio principal del programa.
 
 No usa IP de Sonic. No requiere la app Melon.
 
