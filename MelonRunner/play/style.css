@@ -165,14 +165,23 @@ body {
 
 .spawn-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
-.spawn-grid button {
-  padding: 8px 6px;
-  font-size: 0.78rem;
-  line-height: 1.15;
+.spawn-grid button.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  min-height: 56px;
+}
+
+.spawn-grid button.icon-btn svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+  pointer-events: none;
 }
 
 .hint {
@@ -183,7 +192,7 @@ body {
 
 @media (max-width: 720px) {
   .spawn-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .brand span {

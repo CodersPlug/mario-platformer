@@ -29,7 +29,7 @@
 
   const state = {
     tool: "hand",
-    spawnKind: "azulin",
+    spawnKind: "barrel",
     gravityOn: true,
     paused: false,
     mode: "sandbox", // sandbox | runner
@@ -188,19 +188,33 @@
     tag(left, { kind: "world", deletable: false });
 
     Composite.add(engine.world, [floor, left]);
+  }
 
-    // Starter platforms / Melon-like playground props
-    for (let i = 0; i < 8; i++) {
-      const x = 220 + i * 180;
-      const box = Bodies.rectangle(x, fy - 30 - (i % 3) * 10, 44, 44, {
-        restitution: 0.1,
-        friction: 0.7,
-        density: 0.002,
-        render: { fillStyle: "#c48a4a", strokeStyle: "#7a5228", lineWidth: 2 },
-      });
-      tag(box, { kind: "crate", name: "caja" });
-      Composite.add(engine.world, box);
+  function removeAllAzulin() {
+    const bodies = Composite.allBodies(engine.world);
+    for (const b of bodies.slice()) {
+      if (b.plugin && b.plugin.melon && b.plugin.melon.kind === "azulin") {
+        Composite.remove(engine.world, b);
+      }
     }
+    const cons = Composite.allConstraints(engine.world);
+    for (const c of cons.slice()) {
+      if (c.label === "Mouse Constraint") continue;
+      if (!c.bodyA || !c.bodyB) {
+        Composite.remove(engine.world, c);
+        continue;
+      }
+      const aGone = !Composite.get(engine.world, c.bodyA.id, "body");
+      const bGone = !Composite.get(engine.world, c.bodyB.id, "body");
+      if (aGone || bGone) Composite.remove(engine.world, c);
+    }
+    state.runnerHero = null;
+    state.runnerAlive = false;
+  }
+
+  function ensureSingleAzulin(x, y, opts) {
+    removeAllAzulin();
+    return spawnAzulin(x != null ? x : 160, y != null ? y : floorY() - 70, opts || {});
   }
 
   function styleLivingPart(color) {
@@ -252,7 +266,14 @@
 
     const parts = [torso, head, belly, legL, legR, armL, armR];
     for (const p of parts) {
-      tag(p, { kind: "azulin", name: "Azulin", ragdoll: true, hero: !!opts.hero });
+      tag(p, {
+        kind: "azulin",
+        name: "Azulin",
+        ragdoll: true,
+        hero: !!opts.hero,
+        deletable: false,
+        freezeable: true,
+      });
     }
 
     const constraints = [
@@ -273,11 +294,18 @@
     return torso;
   }
 
+  const ALLOWED_SPAWN = {
+    barrel: true,
+    crate: true,
+    ball: true,
+    plank: true,
+    cone: true,
+  };
+
   function spawnProp(kind, x, y) {
+    if (!ALLOWED_SPAWN[kind]) return null;
     let body;
     switch (kind) {
-      case "azulin":
-        return spawnAzulin(x, y);
       case "crate":
         body = Bodies.rectangle(x, y, 48, 48, {
           restitution: 0.05,
@@ -320,84 +348,6 @@
           render: { fillStyle: "#6c8cff", strokeStyle: "#2f458f", lineWidth: 2 },
         });
         tag(body, { kind: "barrel" });
-        break;
-      case "block":
-        body = Bodies.rectangle(x, y, 56, 56, {
-          friction: 0.9,
-          density: 0.003,
-          render: { fillStyle: "#8899aa", strokeStyle: "#445566", lineWidth: 2 },
-        });
-        tag(body, { kind: "block" });
-        break;
-      case "balloon":
-        body = Bodies.circle(x, y, 20, {
-          restitution: 0.2,
-          frictionAir: 0.02,
-          density: 0.0002,
-          render: { fillStyle: "#ff7eb6", strokeStyle: "#b03b74", lineWidth: 2 },
-        });
-        tag(body, { kind: "balloon", buoyancy: true });
-        break;
-      case "spring": {
-        const a = Bodies.rectangle(x, y - 20, 18, 18, {
-          density: 0.001,
-          render: { fillStyle: "#3ecf8e", strokeStyle: "#1c7a52", lineWidth: 2 },
-        });
-        const b = Bodies.rectangle(x, y + 20, 18, 18, {
-          density: 0.001,
-          render: { fillStyle: "#3ecf8e", strokeStyle: "#1c7a52", lineWidth: 2 },
-        });
-        tag(a, { kind: "spring" });
-        tag(b, { kind: "spring" });
-        const spring = Constraint.create({
-          bodyA: a,
-          bodyB: b,
-          stiffness: 0.08,
-          damping: 0.02,
-          length: 50,
-          render: { strokeStyle: "#9dffa8", lineWidth: 2, type: "spring" },
-        });
-        Composite.add(engine.world, [a, b, spring]);
-        return a;
-      }
-      case "wheel":
-        body = Bodies.circle(x, y, 26, {
-          restitution: 0.3,
-          friction: 0.9,
-          density: 0.0014,
-          render: { fillStyle: "#333", strokeStyle: "#aaa", lineWidth: 3 },
-        });
-        tag(body, { kind: "wheel" });
-        break;
-      case "bomb": {
-        // Impulse puff — Melon-like push without gore
-        const puff = Bodies.circle(x, y, 10, {
-          isSensor: true,
-          render: { fillStyle: "#ffe566", strokeStyle: "#c9a400", lineWidth: 2 },
-        });
-        tag(puff, { kind: "bomb", deletable: true });
-        Composite.add(engine.world, puff);
-        setTimeout(function () {
-          const hits = Query.region(Composite.allBodies(engine.world), {
-            min: { x: x - 90, y: y - 90 },
-            max: { x: x + 90, y: y + 90 },
-          });
-          for (const h of hits) {
-            if (h.isStatic) continue;
-            const force = Vector.mult(Vector.normalise(Vector.sub(h.position, { x, y })), 0.08 * h.mass);
-            Body.applyForce(h, h.position, force);
-          }
-          Composite.remove(engine.world, puff);
-        }, 80);
-        return puff;
-      }
-      case "platform":
-        body = Bodies.rectangle(x, y, 160, 22, {
-          isStatic: true,
-          friction: 0.95,
-          render: { fillStyle: "#6e9b5a", strokeStyle: "#3f6a2c", lineWidth: 2 },
-        });
-        tag(body, { kind: "platform", freezeable: false });
         break;
       default:
         return null;
@@ -615,20 +565,27 @@
     buildWorldFloor();
     state.mode = data.mode || "sandbox";
     state.score = data.score || 0;
+    let azulinPlaced = false;
     for (const item of data.bodies || []) {
       if (item.kind === "azulin") {
-        const torso = spawnAzulin(item.x, item.y, { hero: state.mode === "runner" });
+        if (azulinPlaced) continue;
+        const torso = ensureSingleAzulin(item.x, item.y, {
+          hero: state.mode === "runner",
+        });
         Body.setAngle(torso, item.angle || 0);
-      } else if (item.kind === "obstacle" || item.kind === "platform") {
-        const b = spawnProp(item.kind === "obstacle" ? "block" : "platform", item.x, item.y);
-        if (b && item.isStatic) Body.setStatic(b, true);
-      } else if (item.kind !== "spring" && item.kind !== "bomb") {
+        azulinPlaced = true;
+      } else if (ALLOWED_SPAWN[item.kind]) {
         const b = spawnProp(item.kind, item.x, item.y);
         if (b) {
           Body.setAngle(b, item.angle || 0);
           if (item.isStatic) Body.setStatic(b, true);
         }
       }
+    }
+    if (!azulinPlaced) {
+      ensureSingleAzulin(160, floorY() - 70, {
+        hero: state.mode === "runner",
+      });
     }
     updateHud();
   }
@@ -673,6 +630,7 @@
   document.getElementById("btnClear").addEventListener("click", function () {
     state.mode = "sandbox";
     buildWorldFloor();
+    ensureSingleAzulin(160, floorY() - 70);
     state.cameraX = 0;
     resize();
     updateHud();
@@ -702,7 +660,7 @@
   document.getElementById("btnGravity").classList.add("active");
   resize();
   buildWorldFloor();
-  spawnAzulin(160, floorY() - 70);
+  ensureSingleAzulin(160, floorY() - 70);
   layoutCamera();
   setTool("hand");
   updateHud();
