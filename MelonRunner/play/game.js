@@ -32,7 +32,12 @@
     floorY: 420,
     azulinParts: [],
     azulinTorso: null,
+    azulinLegs: { L: null, R: null },
+    azulinArms: { L: null, R: null },
     didDrag: false,
+    draggingAzulin: false,
+    walkPhase: 0,
+    lastStepSign: 0,
     lastTap: { t: 0, x: 0, y: 0, id: null },
     walls: null,
   };
@@ -242,12 +247,21 @@
     }
     state.azulinParts = [];
     state.azulinTorso = null;
+    state.azulinLegs = { L: null, R: null };
+    state.azulinArms = { L: null, R: null };
+    state.walkPhase = 0;
+    state.lastStepSign = 0;
+    state.draggingAzulin = false;
   }
 
-  function sfx(name) {
+  function sfx(name, arg) {
     if (window.MelonSFX && typeof window.MelonSFX[name] === "function") {
-      window.MelonSFX[name]();
+      window.MelonSFX[name](arg);
     }
+  }
+
+  function isAzulinBody(body) {
+    return !!(body && body.plugin && body.plugin.melon && body.plugin.melon.kind === "azulin");
   }
 
   function restartScene() {
@@ -281,9 +295,56 @@
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
       if (!p || p.isStatic) continue;
-      Body.setAngle(p, 0);
       Body.setAngularVelocity(p, 0);
     }
+  }
+
+  /** Legs walk/run while Azulín is dragged (or moving fast); torso stays upright. */
+  function animateAzulinGait() {
+    const torso = state.azulinTorso;
+    const legL = state.azulinLegs.L;
+    const legR = state.azulinLegs.R;
+    const armL = state.azulinArms.L;
+    const armR = state.azulinArms.R;
+    if (!torso || !legL || !legR) return;
+
+    keepAzulinUpright();
+
+    // Head / torso / belly stay straight.
+    for (let i = 0; i < state.azulinParts.length; i++) {
+      const p = state.azulinParts[i];
+      if (!p || p === legL || p === legR || p === armL || p === armR) continue;
+      Body.setAngle(p, 0);
+    }
+
+    const speed = Math.hypot(torso.velocity.x, torso.velocity.y);
+    const active = state.draggingAzulin && speed > 0.25;
+    if (!active) {
+      Body.setAngle(legL, 0);
+      Body.setAngle(legR, 0);
+      if (armL) Body.setAngle(armL, 0);
+      if (armR) Body.setAngle(armR, 0);
+      return;
+    }
+
+    const running = speed >= 5.5;
+    const stride = running ? 0.55 : 0.32;
+    const phaseStep = speed * (running ? 0.2 : 0.12);
+    state.walkPhase += phaseStep;
+    const wave = Math.sin(state.walkPhase);
+    const swing = wave * stride;
+
+    Body.setAngle(legL, swing);
+    Body.setAngle(legR, -swing);
+    if (armL) Body.setAngle(armL, -swing * 0.55);
+    if (armR) Body.setAngle(armR, swing * 0.55);
+
+    // Footstep on each half-cycle
+    const sign = wave >= 0 ? 1 : -1;
+    if (sign !== state.lastStepSign && state.lastStepSign !== 0) {
+      sfx("step", running);
+    }
+    state.lastStepSign = sign;
   }
 
   function styleLivingPart(color, stroke) {
@@ -348,6 +409,10 @@
       Body.setAngle(p, 0);
       Body.setAngularVelocity(p, 0);
     }
+    tag(legL, Object.assign({}, legL.plugin.melon, { limb: "legL" }));
+    tag(legR, Object.assign({}, legR.plugin.melon, { limb: "legR" }));
+    tag(armL, Object.assign({}, armL.plugin.melon, { limb: "armL" }));
+    tag(armR, Object.assign({}, armR.plugin.melon, { limb: "armR" }));
 
     const constraints = [
       Constraint.create({ bodyA: head, bodyB: torso, pointA: { x: 0, y: 14 * scale }, pointB: { x: 0, y: -12 * scale }, stiffness: 1, damping: 0.2, length: 2, render: { visible: false } }),
@@ -361,7 +426,11 @@
     Composite.add(engine.world, parts.concat(constraints));
     state.azulinParts = parts;
     state.azulinTorso = torso;
-    keepAzulinUpright();
+    state.azulinLegs = { L: legL, R: legR };
+    state.azulinArms = { L: armL, R: armR };
+    state.walkPhase = 0;
+    state.lastStepSign = 0;
+    animateAzulinGait();
     return torso;
   }
 
@@ -461,17 +530,29 @@
   Composite.add(engine.world, mouseConstraint);
   render.mouse = mouse;
 
-  Events.on(mouseConstraint, "startdrag", function () {
+  Events.on(mouseConstraint, "startdrag", function (ev) {
     state.didDrag = true;
-    sfx("grab");
+    const body = (ev && ev.body) || mouseConstraint.body;
+    state.draggingAzulin = isAzulinBody(body);
+    if (state.draggingAzulin) {
+      state.walkPhase = 0;
+      state.lastStepSign = 0;
+      sfx("grab");
+    } else {
+      sfx("grab");
+    }
     if (state.tool !== "hand") {
       mouseConstraint.constraint.bodyB = null;
       mouseConstraint.body = null;
+      state.draggingAzulin = false;
     }
   });
 
   Events.on(mouseConstraint, "enddrag", function () {
-    sfx("throw");
+    if (!state.draggingAzulin) {
+      sfx("throw");
+    }
+    state.draggingAzulin = false;
     // Keep drag flag briefly so the matching pointerup ignores tap/delete.
     setTimeout(function () {
       state.didDrag = false;
@@ -561,7 +642,7 @@
   );
 
   Events.on(engine, "beforeUpdate", function () {
-    keepAzulinUpright();
+    animateAzulinGait();
   });
 
   document.getElementById("btnRestart").addEventListener("click", restartScene);

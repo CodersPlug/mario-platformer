@@ -62,6 +62,16 @@
       tone(784, 0.14, "sine", 0.09, 0.16);
       tone(1046, 0.16, "sine", 0.06, 0.26);
     },
+    /** Footstep: pass true for run (faster / brighter). */
+    step: function (running) {
+      if (running) {
+        tone(220, 0.05, "triangle", 0.07);
+        tone(440, 0.04, "sine", 0.04, 0.02);
+      } else {
+        tone(160, 0.06, "sine", 0.06);
+        tone(240, 0.05, "triangle", 0.035, 0.025);
+      }
+    },
   };
 
   global.MelonSFX = SFX;
