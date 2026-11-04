@@ -55,22 +55,8 @@ body {
 }
 
 .brand {
-  display: flex;
-  flex-direction: column;
   min-width: 0;
-}
-
-.brand strong {
-  font-size: 1.25rem;
-  letter-spacing: 0.02em;
-  color: #ff4f9a;
-  text-shadow: 0 2px 0 #ffe08f;
-}
-
-.brand span {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 500;
+  flex: 1;
 }
 
 .tools {
@@ -162,21 +148,6 @@ body {
   box-shadow: 0 -8px 20px rgba(70, 214, 194, 0.15);
 }
 
-.spawn-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.spawn-row h2 {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #ff4f9a;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
 .spawn-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -219,20 +190,9 @@ body {
   pointer-events: none;
 }
 
-.hint {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
 @media (max-width: 720px) {
   .spawn-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .brand span {
-    display: none;
   }
 }
 
@@ -279,9 +239,5 @@ body {
   .spawn-grid button.icon-btn svg {
     width: 30px;
     height: 30px;
-  }
-
-  .spawn-row .hint {
-    display: none;
   }
 }
