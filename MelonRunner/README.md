@@ -2,8 +2,9 @@
 
 Sandbox 2D **jugable en el iPad** (GitHub Pages), inspirado en Melon Sandbox: gravedad, física, puppeteering (arrastrar/tirar), spawner con iconos y ragdoll **Azulín**.
 
-**Programa cognitivo (Polgár + creación de juegos):**  
-[`programa-polgar-azulin.md`](programa-polgar-azulin.md) · tablero: [`tablero-semanal.md`](tablero-semanal.md)
+**Programa cognitivo Polgár (juegos digitales, físicos e híbridos):**  
+[`programa-polgar.md`](programa-polgar.md) · catálogo: [`catalogo-juegos.md`](catalogo-juegos.md) · tablero: [`tablero-semanal.md`](tablero-semanal.md)  
+Azulín es el laboratorio digital principal, no todo el programa.
 
 No usa IP de Sonic. No requiere la app Melon.
 
@@ -46,6 +47,9 @@ No clona Workshop, Lua Chip nativo, armas ni gore de Melon (orientado a juego fa
 | [`play/game.js`](play/game.js) | Motor sandbox + runner |
 | [`lua/runner.lua`](lua/runner.lua) | Misma lógica para Lua Chip (app Melon) |
 | [`lua/azulin_notes.md`](lua/azulin_notes.md) | Spec visual Azulín |
+| [`programa-polgar.md`](programa-polgar.md) | Curriculum Polgár multi-juego |
+| [`catalogo-juegos.md`](catalogo-juegos.md) | Fichas digital / físico / híbrido |
+| [`tablero-semanal.md`](tablero-semanal.md) | Log semanal (modalidad + pantalla) |
 
 ## Controles
 
