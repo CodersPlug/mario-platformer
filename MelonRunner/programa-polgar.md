@@ -311,22 +311,70 @@ Ninguna app es el laboratorio principal. El **oficio** (crear/jugar juegos) es e
 
 ---
 
-## 12. Integración con herramientas
+## 12. Google Nest (participación en el programa)
+
+Nest **no es un juego del catálogo**: es un **asistente de sesión** (voz / timer / música) que apoya fichas físicas e híbridas **sin abrir otra pantalla**. Contar pantallas en el tablero solo si Nest muestra video en un Hub; un timer o una pregunta de voz = **N**.
+
+### 12.1 Coach de ritual (físico)
+
+En la **apertura** y el **cierre** del ritual diario:
+
+- “Ok Google, timer de 10 minutos” → bloque de juego libre.  
+- “Ok Google, timer de 2 minutos” → cierre / frase del día.  
+
+Cuando suena, ella dice su frase; Nest marca el ritmo de la sesión sin que el coach mire el celular.
+
+**Encaja con:** cualquier día F o H · hábito de estructura Polgár.
+
+### 12.2 Pareja de idiomas (F4 / H3)
+
+En **Eco de palabras** o **Diccionario vivo**:
+
+- Ella pregunta: “Ok Google, ¿cómo se dice manzana en inglés?”  
+- Repite la respuesta al pasar la pelota o al tocar el objeto real.  
+
+Nest = diccionario hablado. No sustituye el juego; solo aporta la palabra L2.
+
+**Encaja con:** Miércoles idiomas · F4 · H3.
+
+### 12.3 Director de ritmo (F5 / H4)
+
+En **Orquesta de sillas** o **Partitura de tiros**:
+
+- “Ok Google, poné un metrónomo a 60” (o una canción suave).  
+- Palmadas, instrumentos caseros o tiros siguen el tempo.  
+
+Nest sostiene el pulso; el juego sigue siendo corporal o híbrido.
+
+**Encaja con:** Jueves música · F5 · H4 · D2 (si hay app, Nest puede marcar el tempo igual).
+
+### Reglas Nest
+
+- Preferir **voz + timer + audio** sobre video en el Hub.  
+- Si el Hub muestra YouTube/video largo → anotar **Pantalla = S**.  
+- Nest no reemplaza cartas, patio ni cocina: acompaña.
+
+Playlist de ideas Nest (coach): [Watch Later · Nest + programa 6 años](https://www.youtube.com/playlist?list=PLUhOHWedvZTQ).
+
+---
+
+## 13. Integración con herramientas
 
 | Herramienta | Uso |
 |-------------|-----|
 | Catálogo D/F/H | Elegir el juego del día (ninguno es default) |
+| Google Nest | Ritual, idiomas L2 y ritmo (§12) — asistente, no lab principal |
 | Azulín (D1) | Una ficha digital opcional |
 | Cartas / papel / stickers | Lógica, hábitos, idiomas sin lectura |
 | Cocina / patio / pelota | Alimentación, lógica, idiomas, cuerpo |
 | Scratch Jr (D3, nivel D) | Puente a bloques |
 | Roblox / parque (opcional) | Sábados largos: explorar + narrar |
 
-El programa corre con **catálogo + vos + tablero de papel**. La pantalla es opcional.
+El programa corre con **catálogo + vos + tablero de papel**. Nest y la pantalla son opcionales.
 
 ---
 
-## 13. Arranque esta semana (días 1–7)
+## 14. Arranque esta semana (días 1–7)
 
 | Día | Modalidad | Hacer |
 |-----|-----------|--------|
