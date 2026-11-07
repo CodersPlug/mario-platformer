@@ -19,7 +19,7 @@
     </header>
 
     <main class="viewport">
-      <!-- 1. Cámara -->
+      <!-- 1. Cámara en vivo -->
       <section id="screenAsk" class="screen">
         <div id="cameraBox" class="camera-frame">
           <video id="video" playsinline autoplay muted></video>
@@ -36,7 +36,28 @@
         </button>
       </section>
 
-      <!-- 2. Progreso -->
+      <!-- 2. Previsualizar antes de detectar -->
+      <section id="screenPreview" class="screen" hidden>
+        <div class="photo-frame">
+          <canvas id="preview"></canvas>
+        </div>
+        <div class="preview-actions">
+          <button type="button" id="btnRetake" class="cam-btn ghost" aria-label="Repetir foto">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <rect x="8" y="18" width="48" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="4"/>
+              <circle cx="32" cy="35" r="11" fill="none" stroke="currentColor" stroke-width="4"/>
+              <path d="M22 18l4-8h12l4 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button type="button" id="btnUsePhoto" class="cam-btn ok" aria-label="Usar esta foto">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <path d="M14 34l12 12 24-26" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- 3. Progreso -->
       <section id="screenProgress" class="screen" hidden>
         <div class="progress-card">
           <p id="progressTitle" class="ask-title">Procesando…</p>
@@ -48,7 +69,7 @@
         </div>
       </section>
 
-      <!-- 3. Resultado -->
+      <!-- 4. Resultado -->
       <section id="screenResult" class="screen" hidden>
         <div class="photo-frame">
           <canvas id="out"></canvas>

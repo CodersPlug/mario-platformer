@@ -9,13 +9,17 @@
 
   const els = {
     screenAsk: document.getElementById("screenAsk"),
+    screenPreview: document.getElementById("screenPreview"),
     screenProgress: document.getElementById("screenProgress"),
     screenResult: document.getElementById("screenResult"),
     cameraBox: document.getElementById("cameraBox"),
     video: document.getElementById("video"),
     snap: document.getElementById("snap"),
+    preview: document.getElementById("preview"),
     out: document.getElementById("out"),
     btnShoot: document.getElementById("btnShoot"),
+    btnRetake: document.getElementById("btnRetake"),
+    btnUsePhoto: document.getElementById("btnUsePhoto"),
     btnAgain: document.getElementById("btnAgain"),
     camStatus: document.getElementById("camStatus"),
     barFill: document.getElementById("barFill"),
@@ -40,6 +44,7 @@
     modelsReady: false,
     baseAge: null,
     sourceCanvas: null,
+    pendingCanvas: null,
     landmarks: null,
     camStarting: false,
   };
@@ -50,6 +55,7 @@
 
   function show(screen) {
     els.screenAsk.hidden = screen !== "ask";
+    els.screenPreview.hidden = screen !== "preview";
     els.screenProgress.hidden = screen !== "progress";
     els.screenResult.hidden = screen !== "result";
     if (screen === "ask") {
@@ -62,6 +68,30 @@
         setCamStatus("");
       }
     }
+  }
+
+  function drawPreview(canvas) {
+    const frame = els.preview.parentElement;
+    const fw = frame.clientWidth;
+    const fh = frame.clientHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    els.preview.width = Math.round(fw * dpr);
+    els.preview.height = Math.round(fh * dpr);
+    els.preview.style.width = fw + "px";
+    els.preview.style.height = fh + "px";
+    drawCover(els.preview.getContext("2d"), canvas, els.preview.width, els.preview.height);
+  }
+
+  function openPreview(canvas) {
+    state.pendingCanvas = copyCanvas(canvas);
+    pauseCameraTracks();
+    show("preview");
+    els.btnAgain.hidden = true;
+    els.ageDock.hidden = true;
+    // Layout then paint
+    requestAnimationFrame(function () {
+      drawPreview(state.pendingCanvas);
+    });
   }
 
   function setCamStatus(msg) {
@@ -232,46 +262,117 @@
     return c;
   }
 
-  /** Largest face + age. No child bias. Returns null age if undetectable. */
+  function cropFacePads(canvas, box, pads) {
+    const samples = [];
+    for (let i = 0; i < pads.length; i++) {
+      const pad = pads[i];
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+      const side = Math.max(box.width, box.height) * (1 + pad * 2);
+      let x = Math.round(cx - side / 2);
+      let y = Math.round(cy - side / 2);
+      let s = Math.round(side);
+      x = clamp(x, 0, canvas.width - 2);
+      y = clamp(y, 0, canvas.height - 2);
+      s = Math.min(s, canvas.width - x, canvas.height - y);
+      if (s < 48) continue;
+      const c = document.createElement("canvas");
+      c.width = 224;
+      c.height = 224;
+      c.getContext("2d").drawImage(canvas, x, y, s, s, 0, 0, 224, 224);
+      samples.push(c);
+    }
+    return samples;
+  }
+
+  function median(nums) {
+    if (!nums.length) return null;
+    const a = nums.slice().sort(function (x, y) {
+      return x - y;
+    });
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+  }
+
+  /**
+   * Largest face + multi-crop age estimate (aligned patches beat full-frame).
+   * Returns null age if undetectable.
+   */
   async function detectAgeAndFace(canvas, onProg) {
     if (onProg) onProg(48, "Buscando rostros…");
 
     let dets = await faceapi
-      .detectAllFaces(canvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
-      .withFaceLandmarks()
-      .withAgeAndGender();
+      .detectAllFaces(canvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.45 }))
+      .withFaceLandmarks();
 
     if (!dets || !dets.length) {
       if (onProg) onProg(55, "Probando detector alternativo…");
       dets = await faceapi
         .detectAllFaces(
           canvas,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 })
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.35 })
         )
-        .withFaceLandmarks()
-        .withAgeAndGender();
+        .withFaceLandmarks();
     }
-
-    if (onProg) onProg(75, "Estimando edad…");
 
     if (!dets || !dets.length) {
       return { age: null, landmarks: null, gender: null };
     }
 
-    // Largest face by box area (session subject)
     dets.sort(function (a, b) {
       return b.detection.box.area - a.detection.box.area;
     });
     const best = dets[0];
-    let age = Math.round(best.age);
+    if (onProg) onProg(68, "Alineando rostro…");
+
+    const ages = [];
+    // ExtractFaces gives landmark-aligned 112–ish crops when available
+    try {
+      const extracted = await faceapi.extractFaces(canvas, [best.detection]);
+      if (extracted && extracted[0]) {
+        const r0 = await faceapi.nets.ageGenderNet.predictAgeAndGender(extracted[0]);
+        if (r0 && typeof r0.age === "number") ages.push(r0.age);
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+
+    if (onProg) onProg(80, "Estimando edad…");
+    const crops = cropFacePads(canvas, best.detection.box, [0.15, 0.28, 0.4]);
+    for (let i = 0; i < crops.length; i++) {
+      try {
+        const r = await faceapi.nets.ageGenderNet.predictAgeAndGender(crops[i]);
+        if (r && typeof r.age === "number") ages.push(r.age);
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
+    if (!ages.length) {
+      // Last resort: full pipeline withAgeAndGender on original detection path
+      const again = await faceapi
+        .detectSingleFace(canvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
+        .withFaceLandmarks()
+        .withAgeAndGender();
+      if (again && typeof again.age === "number") ages.push(again.age);
+    }
+
+    if (!ages.length) {
+      return { age: null, landmarks: best.landmarks, gender: null };
+    }
+
+    // Median is stabler than mean; tiny downward nudge — nets often over-age adults.
+    let age = median(ages);
+    age = Math.round(age - 2);
     age = clamp(age, 1, 100);
 
-    if (onProg) onProg(90, "Edad estimada: " + age);
+    if (onProg) onProg(92, "Edad estimada: " + age);
     return {
       age: age,
       landmarks: best.landmarks,
-      gender: best.gender,
+      gender: null,
       score: best.detection.score,
+      samples: ages.length,
     };
   }
 
@@ -445,6 +546,7 @@
     setProgress(2, "Iniciando sesión");
 
     state.sourceCanvas = copyCanvas(canvas);
+    state.pendingCanvas = null;
     state.landmarks = null;
     state.baseAge = null;
 
@@ -453,16 +555,15 @@
       if (!loaded) throw new Error("No cargaron los modelos");
 
       setProgress(45, "Analizando la foto…");
-      await wait(120);
+      await wait(80);
       const det = await detectAgeAndFace(canvas, setProgress);
       state.landmarks = det.landmarks;
 
       setProgress(100, "Listo");
-      await wait(280);
+      await wait(220);
 
       show("result");
       els.btnAgain.hidden = false;
-      // Draw base photo first
       resizeOutToFrame();
       drawCover(els.out.getContext("2d"), state.sourceCanvas, els.out.width, els.out.height);
 
@@ -494,6 +595,7 @@
 
   function resetSession() {
     state.sourceCanvas = null;
+    state.pendingCanvas = null;
     state.landmarks = null;
     state.baseAge = null;
     els.ageDock.hidden = true;
@@ -503,6 +605,7 @@
     setProgress(0, "Preparando");
     show("ask");
     resumeCameraTracks();
+    els.btnShoot.disabled = false;
   }
 
   els.btnShoot.addEventListener("click", async function () {
@@ -528,8 +631,20 @@
       return;
     }
     const frame = grabCameraFrame();
-    pauseCameraTracks();
-    processImage(frame);
+    openPreview(frame);
+    els.btnShoot.disabled = false;
+  });
+
+  els.btnRetake.addEventListener("click", function () {
+    state.pendingCanvas = null;
+    show("ask");
+    resumeCameraTracks();
+    els.btnShoot.disabled = false;
+  });
+
+  els.btnUsePhoto.addEventListener("click", function () {
+    if (!state.pendingCanvas) return;
+    processImage(state.pendingCanvas);
   });
 
   els.btnAgain.addEventListener("click", resetSession);
@@ -548,6 +663,9 @@
   });
 
   window.addEventListener("resize", function () {
+    if (!els.screenPreview.hidden && state.pendingCanvas) {
+      drawPreview(state.pendingCanvas);
+    }
     if (state.sourceCanvas && state.baseAge != null) {
       renderAge(parseInt(els.ageSlider.value, 10) || state.baseAge);
     }
