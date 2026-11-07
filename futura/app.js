@@ -5,6 +5,8 @@
   const MODEL_URL =
     "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model";
 
+  const CAM_FLAG = "futura_cam_granted_v1";
+
   const els = {
     screenAsk: document.getElementById("screenAsk"),
     screenProgress: document.getElementById("screenProgress"),
@@ -13,10 +15,9 @@
     video: document.getElementById("video"),
     snap: document.getElementById("snap"),
     out: document.getElementById("out"),
-    btnCamera: document.getElementById("btnCamera"),
     btnShoot: document.getElementById("btnShoot"),
     btnAgain: document.getElementById("btnAgain"),
-    fileInput: document.getElementById("fileInput"),
+    camStatus: document.getElementById("camStatus"),
     barFill: document.getElementById("barFill"),
     progressPct: document.getElementById("progressPct"),
     progressTitle: document.getElementById("progressTitle"),
@@ -40,6 +41,7 @@
     baseAge: null,
     sourceCanvas: null,
     landmarks: null,
+    camStarting: false,
   };
 
   function clamp(n, a, b) {
@@ -50,6 +52,26 @@
     els.screenAsk.hidden = screen !== "ask";
     els.screenProgress.hidden = screen !== "progress";
     els.screenResult.hidden = screen !== "result";
+    if (screen === "ask") {
+      // If permission was granted before, reopen quietly (no new prompt).
+      // First visit: wait for the camera button tap (needs a user gesture on iPad).
+      if (localStorage.getItem(CAM_FLAG)) {
+        ensureCamera();
+      } else {
+        els.btnShoot.disabled = false;
+        setCamStatus("");
+      }
+    }
+  }
+
+  function setCamStatus(msg) {
+    if (!msg) {
+      els.camStatus.hidden = true;
+      els.camStatus.textContent = "";
+      return;
+    }
+    els.camStatus.hidden = false;
+    els.camStatus.textContent = msg;
   }
 
   function setProgress(pct, detail) {
@@ -104,29 +126,78 @@
     return true;
   }
 
-  async function startCamera() {
+  /** Open front camera. Browser asks permission only the first time (then remembers). */
+  async function ensureCamera() {
+    if (state.stream && state.stream.active) {
+      els.btnShoot.disabled = false;
+      setCamStatus("");
+      return true;
+    }
+    if (state.camStarting) return false;
+    state.camStarting = true;
+    els.btnShoot.disabled = true;
+
+    const firstTime = !localStorage.getItem(CAM_FLAG);
+    setCamStatus(firstTime ? "Permiso de cámara…" : "");
+
     try {
-      if (state.stream) {
-        state.stream.getTracks().forEach(function (t) {
-          t.stop();
-        });
-      }
       state.stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          facingMode: { ideal: "user" },
+          facingMode: { exact: "user" },
           width: { ideal: 1280 },
           height: { ideal: 960 },
         },
       });
+    } catch (errExact) {
+      // Some iPads ignore exact; fall back to ideal without re-prompting if already granted.
+      try {
+        state.stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "user" },
+            width: { ideal: 1280 },
+            height: { ideal: 960 },
+          },
+        });
+      } catch (err) {
+        console.error(err);
+        setCamStatus("Activá la cámara en Ajustes → Safari");
+        els.btnShoot.disabled = true;
+        state.camStarting = false;
+        return false;
+      }
+    }
+
+    try {
+      localStorage.setItem(CAM_FLAG, "1");
       els.video.srcObject = state.stream;
       await els.video.play();
-      els.cameraBox.hidden = false;
-      document.querySelector(".ask-card").hidden = true;
+      setCamStatus("");
+      els.btnShoot.disabled = false;
+      state.camStarting = false;
+      return true;
     } catch (err) {
       console.error(err);
-      alert("No se pudo abrir la cámara. Probá “Elegir imagen” o revisá permisos.");
+      setCamStatus("No se pudo iniciar el preview");
+      els.btnShoot.disabled = true;
+      state.camStarting = false;
+      return false;
     }
+  }
+
+  function pauseCameraTracks() {
+    if (!state.stream) return;
+    state.stream.getTracks().forEach(function (t) {
+      t.enabled = false;
+    });
+  }
+
+  function resumeCameraTracks() {
+    if (!state.stream) return;
+    state.stream.getTracks().forEach(function (t) {
+      t.enabled = true;
+    });
   }
 
   function stopCamera() {
@@ -151,33 +222,6 @@
     ctx.drawImage(els.video, 0, 0, w, h);
     ctx.restore();
     return c;
-  }
-
-  function loadFileToCanvas(file) {
-    return new Promise(function (resolve, reject) {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = function () {
-        const c = document.createElement("canvas");
-        // Cap long edge for speed / memory on iPad
-        const maxEdge = 1280;
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        const scale = Math.min(1, maxEdge / Math.max(w, h));
-        w = Math.round(w * scale);
-        h = Math.round(h * scale);
-        c.width = w;
-        c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        resolve(c);
-      };
-      img.onerror = function () {
-        URL.revokeObjectURL(url);
-        reject(new Error("No se pudo leer la imagen"));
-      };
-      img.src = url;
-    });
   }
 
   function copyCanvas(from) {
@@ -449,46 +493,43 @@
   }
 
   function resetSession() {
-    stopCamera();
     state.sourceCanvas = null;
     state.landmarks = null;
     state.baseAge = null;
-    els.cameraBox.hidden = true;
-    const askCard = document.querySelector(".ask-card");
-    if (askCard) askCard.hidden = false;
-    els.fileInput.value = "";
     els.ageDock.hidden = true;
     els.btnAgain.hidden = true;
     els.manualAge.hidden = true;
     els.ageAnnounce.hidden = false;
     setProgress(0, "Preparando");
     show("ask");
+    resumeCameraTracks();
   }
 
-  els.btnCamera.addEventListener("click", function () {
-    startCamera();
-  });
-
-  els.btnShoot.addEventListener("click", function () {
-    if (!els.video.videoWidth) return;
-    const frame = grabCameraFrame();
-    stopCamera();
-    els.cameraBox.hidden = true;
-    processImage(frame);
-  });
-
-  els.fileInput.addEventListener("change", async function () {
-    const file = els.fileInput.files && els.fileInput.files[0];
-    if (!file) return;
-    try {
-      const canvas = await loadFileToCanvas(file);
-      stopCamera();
-      els.cameraBox.hidden = true;
-      await processImage(canvas);
-    } catch (err) {
-      console.error(err);
-      alert("No se pudo abrir esa imagen.");
+  els.btnShoot.addEventListener("click", async function () {
+    if (els.btnShoot.disabled || state.camStarting) return;
+    els.btnShoot.disabled = true;
+    const ok = await ensureCamera();
+    if (!ok) {
+      els.btnShoot.disabled = false;
+      return;
     }
+    if (!els.video.videoWidth) {
+      await Promise.race([
+        new Promise(function (resolve) {
+          els.video.addEventListener("loadeddata", resolve, { once: true });
+        }),
+        wait(1500),
+      ]);
+    }
+    await wait(80);
+    if (!els.video.videoWidth) {
+      setCamStatus("Esperá el preview y volvé a tocar");
+      els.btnShoot.disabled = false;
+      return;
+    }
+    const frame = grabCameraFrame();
+    pauseCameraTracks();
+    processImage(frame);
   });
 
   els.btnAgain.addEventListener("click", resetSession);
@@ -512,5 +553,9 @@
     }
   });
 
+  // Warm models in background; camera starts with ask screen (permission once).
+  loadModels().catch(function () {});
   show("ask");
+
+  window.addEventListener("pagehide", stopCamera);
 })();
