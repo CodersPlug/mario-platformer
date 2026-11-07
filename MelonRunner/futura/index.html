@@ -6,8 +6,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Cuando sea vieja</title>
-  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate" />
-  <link rel="stylesheet" href="style.css?v=20261107c" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <script>
+    // Runtime cache-buster: GitHub Pages caches assets for 10 min and iOS
+    // Safari is aggressive. Load CSS/JS with a per-load token.
+    window.__FUTURA_BUILD = 10;
+    (function () {
+      var t = Date.now();
+      var l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = "style.css?b=" + window.__FUTURA_BUILD + "&t=" + t;
+      document.head.appendChild(l);
+    })();
+  </script>
 </head>
 <body>
   <div id="app">
@@ -34,6 +47,7 @@
           <path d="M118 28c2 4 6 6 12 6s10-2 12-6" fill="none" stroke="rgba(90,60,50,0.35)" stroke-width="1.4"/>
         </svg>
       </div>
+      <span id="buildTag" class="build-tag" aria-hidden="true"></span>
       <button type="button" id="btnAgain" class="icon-btn corner" hidden aria-label="Otra foto">
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <path d="M14 18a14 14 0 1 1-2 10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -140,6 +154,13 @@
   </div>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
-  <script defer src="app.js?v=20261107c"></script>
+  <script>
+    (function () {
+      var s = document.createElement("script");
+      s.defer = true;
+      s.src = "app.js?b=" + window.__FUTURA_BUILD + "&t=" + Date.now();
+      document.body.appendChild(s);
+    })();
+  </script>
 </body>
 </html>

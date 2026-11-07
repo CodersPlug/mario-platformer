@@ -931,15 +931,16 @@
     stopSlideshow();
     const age = parseInt(els.ageSlider.value, 10);
     if (!Number.isFinite(age)) return;
-    // Live regen while dragging; stronger flash when finger/mouse releases.
     const releasing =
       !ev ||
       ev.type === "change" ||
       ev.type === "pointerup" ||
       ev.type === "touchend" ||
       ev.type === "mouseup";
+    // Always paint synchronously: iOS Safari can suspend rAF during a
+    // touch gesture and does not reliably fire `change` on range inputs.
     showAge(age, {
-      immediate: releasing,
+      immediate: true,
       syncSlider: false,
       flash: releasing,
     });
@@ -949,6 +950,94 @@
   els.ageSlider.addEventListener("pointerup", onSliderMove);
   els.ageSlider.addEventListener("touchend", onSliderMove);
   els.ageSlider.addEventListener("mouseup", onSliderMove);
+
+  // Manual touch/pointer tracking on the dock: bypasses the native range
+  // control entirely, so a finger drag works even if iOS swallows events.
+  (function attachDockGesture() {
+    const dock = els.ageDock;
+    let active = false;
+
+    function ageFromClientX(clientX) {
+      const r = els.ageSlider.getBoundingClientRect();
+      if (r.width <= 0) return null;
+      const f = clamp((clientX - r.left) / r.width, 0, 1);
+      return clamp(Math.round(1 + f * 99), 1, 100);
+    }
+
+    function applyFromX(clientX, releasing) {
+      const age = ageFromClientX(clientX);
+      if (age == null || state.baseAge == null || !state.cartoonCanvas) return;
+      stopSlideshow();
+      els.ageSlider.value = String(age);
+      showAge(age, { immediate: true, syncSlider: true, flash: releasing });
+    }
+
+    if (window.PointerEvent) {
+      dock.addEventListener(
+        "pointerdown",
+        function (e) {
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          active = true;
+          applyFromX(e.clientX, false);
+        },
+        { passive: true }
+      );
+      dock.addEventListener(
+        "pointermove",
+        function (e) {
+          if (!active) return;
+          applyFromX(e.clientX, false);
+        },
+        { passive: true }
+      );
+      const end = function (e) {
+        if (!active) return;
+        active = false;
+        applyFromX(e.clientX, true);
+      };
+      dock.addEventListener("pointerup", end, { passive: true });
+      dock.addEventListener("pointercancel", end, { passive: true });
+    }
+
+    dock.addEventListener(
+      "touchstart",
+      function (e) {
+        if (!e.touches.length) return;
+        active = true;
+        applyFromX(e.touches[0].clientX, false);
+      },
+      { passive: true }
+    );
+    dock.addEventListener(
+      "touchmove",
+      function (e) {
+        if (!active || !e.touches.length) return;
+        applyFromX(e.touches[0].clientX, false);
+      },
+      { passive: true }
+    );
+    dock.addEventListener(
+      "touchend",
+      function (e) {
+        if (!active) return;
+        active = false;
+        const t = e.changedTouches && e.changedTouches[0];
+        if (t) applyFromX(t.clientX, true);
+      },
+      { passive: true }
+    );
+  })();
+
+  // Watchdog: if the slider value ever differs from what is painted,
+  // repaint. Covers any event the platform failed to deliver.
+  setInterval(function () {
+    if (state.baseAge == null || !state.cartoonCanvas) return;
+    if (els.screenResult.hidden || els.ageDock.hidden) return;
+    const v = parseInt(els.ageSlider.value, 10);
+    if (Number.isFinite(v) && v !== state.lastShownAge) {
+      showAge(v, { immediate: true, syncSlider: false, flash: true });
+    }
+  }, 120);
 
   window.addEventListener("resize", function () {
     if (!els.screenPreview.hidden && state.pendingCanvas) {
@@ -960,6 +1049,9 @@
       });
     }
   });
+
+  const buildTag = document.getElementById("buildTag");
+  if (buildTag) buildTag.textContent = String(window.__FUTURA_BUILD || "");
 
   loadModels().catch(function () {});
   show("ask");
