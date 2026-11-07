@@ -77,6 +77,18 @@ body {
   height: 26px;
 }
 
+.build-tag {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(28, 36, 48, 0.35);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
 .icon-btn.corner {
   position: absolute;
   right: 0;
@@ -654,17 +666,41 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.age-dock {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 #ageSlider {
   width: 100%;
   appearance: none;
-  height: 14px;
+  -webkit-appearance: none;
+  height: 44px;
+  margin: 0;
+  padding: 0;
   border-radius: 999px;
-  background: linear-gradient(90deg, #9fd6ff, #ffc4a8, #ff8fb3);
+  background: linear-gradient(90deg, #9fd6ff, #ffc4a8, #ff8fb3) center / 100% 14px
+    no-repeat;
   outline: none;
+  touch-action: none;
+  cursor: pointer;
+}
+
+#ageSlider::-webkit-slider-runnable-track {
+  height: 44px;
+  background: transparent;
+}
+
+#ageSlider::-moz-range-track {
+  height: 14px;
+  background: transparent;
 }
 
 #ageSlider::-webkit-slider-thumb {
   appearance: none;
+  -webkit-appearance: none;
+  margin-top: 4px;
   width: 36px;
   height: 36px;
   border-radius: 50%;
