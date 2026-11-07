@@ -49,7 +49,7 @@ Misiones rápidas: exactamente N piezas · pelota toca pared y vuelve · “plat
 | **Modalidad** | Digital (iPad) |
 | **Pilares** | Creatividad, oficio (imaginar el yo futuro), idiomas (narrar) |
 | **Materiales** | iPad · [Cuando sea vieja](https://codersplug.github.io/mario-platformer/futura/) · cámara frontal |
-| **Reglas** | 1) Selfie con la cámara de adelante. 2) La app estima la edad y pone el slider ahí. 3) Deslizar hacia adelante (más grande/vieja) o atrás (más chica). La foto no se sube. |
+| **Reglas** | 1) Tocá el ícono de cámara (permiso solo la 1ª vez). 2) La app estima la edad y la anuncia. 3) Deslizá el slider adelante/atrás. La foto no se sube. |
 | **Éxito** | Ella mueve el slider y cuenta 1 frase: “Cuando sea vieja voy a…” |
 | **Más fácil** | Solo mirar 3 edades (ahora / grande / viejita). |
 | **Más dura** | Inventar una misión del programa para su “yo viejita”. |

@@ -15,29 +15,25 @@
   <div id="app">
     <header class="topbar">
       <h1 class="brand">Cuando sea vieja</h1>
-      <button type="button" id="btnAgain" class="icon-btn" hidden aria-label="Otra foto">↺</button>
+      <button type="button" id="btnAgain" class="icon-btn corner" hidden aria-label="Otra foto">↺</button>
     </header>
 
     <main class="viewport">
-      <!-- 1. Pedir imagen -->
+      <!-- 1. Cámara -->
       <section id="screenAsk" class="screen">
-        <div class="ask-card">
-          <p class="ask-title">¿Cómo te ves hoy?</p>
-          <p class="ask-sub">Una foto por sesión. Se procesa en tu iPad; no se sube.</p>
-          <div class="ask-actions">
-            <button type="button" id="btnCamera" class="primary">Cámara frontal</button>
-            <label class="primary secondary file-btn">
-              Elegir imagen
-              <input id="fileInput" type="file" accept="image/*" hidden />
-            </label>
-          </div>
-        </div>
-
-        <div id="cameraBox" class="camera-frame" hidden>
+        <div id="cameraBox" class="camera-frame">
           <video id="video" playsinline autoplay muted></video>
           <canvas id="snap" hidden></canvas>
-          <button type="button" id="btnShoot" class="primary shoot floating">Tomar foto</button>
+          <p id="camStatus" class="cam-status" hidden></p>
         </div>
+        <button type="button" id="btnShoot" class="cam-btn" aria-label="Tomar foto" disabled>
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <rect x="8" y="18" width="48" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="4"/>
+            <circle cx="32" cy="35" r="11" fill="none" stroke="currentColor" stroke-width="4"/>
+            <path d="M22 18l4-8h12l4 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            <circle cx="46" cy="26" r="2.5" fill="currentColor"/>
+          </svg>
+        </button>
       </section>
 
       <!-- 2. Progreso -->
