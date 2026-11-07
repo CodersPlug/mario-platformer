@@ -419,10 +419,24 @@
     return c;
   }
 
-  /** Atlas Nano Banana via local proxy — source sent as data URI (never stored on Atlas). */
+  /**
+   * API host for Atlas proxy.
+   * - Same origin when served by Node/Cursor (has /api/*)
+   * - On GitHub Pages, call the Cursor-hosted app (must be Public for iPad)
+   */
+  function apiRoot() {
+    if (window.__FUTURA_API_BASE) return String(window.__FUTURA_API_BASE).replace(/\/$/, "");
+    const h = location.hostname || "";
+    if (h === "codersplug.github.io" || h.endsWith(".github.io")) {
+      return "https://cuando-sea-vieja.apps.grok.bot";
+    }
+    return "";
+  }
+
+  /** Atlas Nano Banana via proxy — source sent as data URI (never stored on Atlas). */
   async function reageViaAtlas(sourceCanvas, sourceAge, targetAge) {
     const image = canvasToJpegDataUrl(sourceCanvas, 0.9);
-    const res = await fetch("/api/reage", {
+    const res = await fetch(apiRoot() + "/api/reage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -447,8 +461,11 @@
 
   async function probeAtlas() {
     try {
-      const res = await fetch("/api/health", { cache: "no-store" });
-      if (!res.ok) return false;
+      const res = await fetch(apiRoot() + "/api/health", { cache: "no-store" });
+      if (!res.ok) {
+        state.atlasReady = false;
+        return false;
+      }
       const j = await res.json();
       state.atlasReady = !!(j && j.atlas);
       return state.atlasReady;
@@ -799,6 +816,8 @@
   loadFaceModels().catch(function () {});
   probeAtlas().then(function (ok) {
     console.log("Atlas reage", ok ? "ready" : "unavailable (FRAN fallback)");
+    const note = document.getElementById("privacyNote");
+    if (note) note.hidden = !ok;
   });
   // Warm FRAN in background as offline fallback
   setTimeout(function () {
