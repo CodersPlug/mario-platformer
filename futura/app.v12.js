@@ -580,18 +580,7 @@
       ctx.restore();
     }
 
-    if (am.tYoung > 0.05) {
-      const t = am.tYoung;
-      ctx.save();
-      ctx.fillStyle = "rgba(255,130,150," + (0.18 + t * 0.4) + ")";
-      ctx.beginPath();
-      ctx.arc(w * 0.3, h * 0.55, w * 0.06, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(w * 0.7, h * 0.55, w * 0.06, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    // Younger look is CSS-only (no cheek blobs — they land wrong without face box).
   }
 
   /**
