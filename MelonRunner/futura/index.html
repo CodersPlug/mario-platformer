@@ -4,11 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <title>Cuando sea vieja</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <script>window.__FUTURA_BUILD = 12;</script>
-  <link rel="stylesheet" href="style.v12.css" />
+  <script>window.__FUTURA_BUILD = 13;</script>
+  <link rel="stylesheet" href="style.v13.css" />
 </head>
 <body>
   <div id="app">
@@ -30,7 +29,7 @@
           <path d="M124 30c3 2.2 9 2.2 12 0" fill="none" stroke="#3a2a28" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <span id="buildTag" class="build-tag" aria-hidden="true">12</span>
+      <span id="buildTag" class="build-tag" aria-hidden="true">13</span>
       <button type="button" id="btnAgain" class="icon-btn corner" hidden aria-label="Otra foto">
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <path d="M14 18a14 14 0 1 1-2 10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -44,7 +43,7 @@
         <div id="cameraBox" class="camera-frame">
           <video id="video" playsinline autoplay muted></video>
           <canvas id="snap" hidden></canvas>
-          <div id="camStatus" class="cam-status" hidden aria-hidden="true"><span class="pulse-dot"></span></div>
+          <div id="camStatus" class="cam-status" hidden><span class="pulse-dot"></span></div>
         </div>
         <button type="button" id="btnShoot" class="cam-btn" aria-label="Tomar foto" disabled>
           <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -57,9 +56,7 @@
       </section>
 
       <section id="screenPreview" class="screen" hidden>
-        <div class="photo-frame">
-          <canvas id="preview"></canvas>
-        </div>
+        <div class="photo-frame"><canvas id="preview"></canvas></div>
         <div class="preview-actions">
           <button type="button" id="btnRetake" class="cam-btn ghost" aria-label="Repetir">
             <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -78,14 +75,14 @@
       <section id="screenProgress" class="screen" hidden>
         <div class="progress-stage" aria-busy="true">
           <div class="progress-orbit">
-            <div id="progressFace" class="progress-face face-kid" aria-hidden="true"></div>
+            <div id="progressFace" class="progress-face face-kid"></div>
             <div class="orbit-ring"></div>
             <div class="spark s1"></div>
             <div class="spark s2"></div>
             <div class="spark s3"></div>
           </div>
-          <div class="bar-track" aria-hidden="true"><div id="barFill" class="bar-fill"></div></div>
-          <div id="progressTicks" class="progress-ticks" aria-hidden="true">
+          <div class="bar-track"><div id="barFill" class="bar-fill"></div></div>
+          <div id="progressTicks" class="progress-ticks">
             <span></span><span></span><span></span><span></span><span></span>
           </div>
         </div>
@@ -94,46 +91,40 @@
       <section id="screenResult" class="screen" hidden>
         <div class="photo-frame result-frame" id="resultFrame">
           <img id="outImg" class="out-img" alt="" draggable="false" />
-          <canvas id="ageFx" class="age-fx" aria-hidden="true"></canvas>
-          <div id="ageWash" class="age-wash" aria-hidden="true"></div>
-          <div id="ageHair" class="age-hair" aria-hidden="true"></div>
-          <div id="ageRing" class="age-ring" aria-hidden="true"></div>
-          <div id="redrawFlash" class="redraw-flash" hidden aria-hidden="true"></div>
-          <div id="busyOverlay" class="busy-overlay" hidden aria-hidden="true"><div class="busy-spinner"></div></div>
-          <canvas id="out" hidden></canvas>
+          <div id="busyOverlay" class="busy-overlay" hidden><div class="busy-spinner"></div></div>
         </div>
         <div id="manualAge" class="manual-icons" hidden>
-          <button type="button" class="stage-pick" data-age="4" aria-label="Bebé"><span class="stage-icon face-baby"></span></button>
-          <button type="button" class="stage-pick" data-age="8" aria-label="Niña"><span class="stage-icon face-kid"></span></button>
-          <button type="button" class="stage-pick" data-age="16" aria-label="Joven"><span class="stage-icon face-teen"></span></button>
-          <button type="button" class="stage-pick" data-age="35" aria-label="Adulta"><span class="stage-icon face-adult"></span></button>
-          <button type="button" class="stage-pick" data-age="70" aria-label="Abuela"><span class="stage-icon face-elder"></span></button>
+          <button type="button" class="stage-pick" data-age="8"><span class="stage-icon face-kid"></span></button>
+          <button type="button" class="stage-pick" data-age="35"><span class="stage-icon face-adult"></span></button>
+          <button type="button" class="stage-pick" data-age="70"><span class="stage-icon face-elder"></span></button>
         </div>
       </section>
     </main>
 
     <footer id="ageDock" class="age-dock" hidden>
       <div class="jump-row" id="jumpRow">
-        <button type="button" class="jump-btn" data-age="5" aria-label="5"><span class="stage-icon face-baby"></span></button>
-        <button type="button" class="jump-btn" data-age="12" aria-label="12"><span class="stage-icon face-kid"></span></button>
-        <button type="button" class="jump-btn" data-age="25" aria-label="25"><span class="stage-icon face-teen"></span></button>
-        <button type="button" class="jump-btn" data-age="50" aria-label="50"><span class="stage-icon face-adult"></span></button>
-        <button type="button" class="jump-btn" data-age="80" aria-label="80"><span class="stage-icon face-elder"></span></button>
+        <button type="button" class="jump-btn" data-age="8"><span class="stage-icon face-baby"></span></button>
+        <button type="button" class="jump-btn" data-age="16"><span class="stage-icon face-kid"></span></button>
+        <button type="button" class="jump-btn" data-age="30"><span class="stage-icon face-teen"></span></button>
+        <button type="button" class="jump-btn" data-age="55"><span class="stage-icon face-adult"></span></button>
+        <button type="button" class="jump-btn" data-age="80"><span class="stage-icon face-elder"></span></button>
       </div>
       <div class="dock-icons">
-        <span class="stage-icon face-baby dock-end" aria-hidden="true"></span>
-        <span id="ageReadout" class="age-num" aria-hidden="true">—</span>
-        <span class="stage-icon face-elder dock-end" aria-hidden="true"></span>
+        <span class="stage-icon face-baby dock-end"></span>
+        <span id="ageReadout" class="age-num">—</span>
+        <span class="stage-icon face-elder dock-end"></span>
       </div>
       <div id="scrub" class="scrub" role="slider" aria-valuemin="1" aria-valuemax="100" aria-valuenow="30" tabindex="0">
-        <div class="scrub-track" aria-hidden="true"></div>
-        <div id="scrubFill" class="scrub-fill" aria-hidden="true"></div>
-        <div id="scrubThumb" class="scrub-thumb" aria-hidden="true"></div>
+        <div class="scrub-track"></div>
+        <div id="scrubFill" class="scrub-fill"></div>
+        <div id="scrubThumb" class="scrub-thumb"></div>
       </div>
     </footer>
   </div>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
-  <script defer src="app.v12.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+  <script defer src="fran.js"></script>
+  <script defer src="app.v13.js"></script>
 </body>
 </html>
