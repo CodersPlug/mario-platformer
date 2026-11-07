@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Local static + API server (mirrors Vercel /api/* handlers).
- * Production on Cursor Apps uses api/reage.js + api/health.js.
+ * Local-only static + API preview (mirrors Cursor/Vercel /api/* handlers).
+ * Not used in production — do not set as package.json "start".
  */
 import http from "node:http";
 import fs from "node:fs";
@@ -13,10 +13,11 @@ import {
   getAtlasKey,
   MODEL,
   isAllowedOrigin,
-} from "./lib/atlas.mjs";
+  clientIp,
+} from "../lib/atlas.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, "..");
 const PORT = Number(process.env.PORT || 8787);
 
 const MIME = {
@@ -32,6 +33,24 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".wasm": "application/wasm",
 };
+
+/** Paths that must never be served as static files. */
+const BLOCKED_PREFIXES = [
+  "/.env",
+  "/lib/",
+  "/api/",
+  "/scripts/",
+  "/node_modules/",
+  "/.git/",
+];
+const BLOCKED_EXACT = new Set([
+  "/.env",
+  "/package.json",
+  "/package-lock.json",
+  "/vercel.json",
+  "/server.mjs",
+]);
+const BLOCKED_NAMES = new Set([".env", ".gitignore", ".npmrc"]);
 
 function loadDotEnv() {
   const p = path.join(ROOT, ".env");
@@ -81,6 +100,20 @@ function sendJson(res, status, obj, origin) {
   res.end(JSON.stringify(obj));
 }
 
+function isBlockedStatic(urlPath) {
+  const lower = urlPath.toLowerCase();
+  if (BLOCKED_EXACT.has(lower)) return true;
+  if (BLOCKED_PREFIXES.some((p) => lower === p.slice(0, -1) || lower.startsWith(p))) {
+    return true;
+  }
+  const base = path.basename(urlPath).toLowerCase();
+  if (BLOCKED_NAMES.has(base)) return true;
+  if (base.endsWith(".env") || base.startsWith(".env.")) return true;
+  if (base === "local-server.mjs" || base === "server.mjs") return true;
+  if (base === "atlas.js" || base === "atlas.mjs") return true;
+  return false;
+}
+
 function serveStatic(req, res) {
   let urlPath;
   try {
@@ -91,25 +124,37 @@ function serveStatic(req, res) {
     return;
   }
   if (urlPath === "/") urlPath = "/index.html";
+  if (isBlockedStatic(urlPath)) {
+    res.writeHead(404);
+    res.end("not found");
+    return;
+  }
   const safe = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
   const filePath = path.join(ROOT, safe);
-  if (!filePath.startsWith(ROOT)) {
+  if (!filePath.startsWith(ROOT + path.sep) && filePath !== ROOT) {
     res.writeHead(403);
     res.end("forbidden");
     return;
   }
-  fs.readFile(filePath, (err, buf) => {
-    if (err) {
+  fs.stat(filePath, (statErr, st) => {
+    if (statErr || !st.isFile()) {
       res.writeHead(404);
       res.end("not found");
       return;
     }
-    const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, {
-      "Content-Type": MIME[ext] || "application/octet-stream",
-      "Cache-Control": "no-cache",
+    fs.readFile(filePath, (err, buf) => {
+      if (err) {
+        res.writeHead(404);
+        res.end("not found");
+        return;
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      res.writeHead(200, {
+        "Content-Type": MIME[ext] || "application/octet-stream",
+        "Cache-Control": "no-cache",
+      });
+      res.end(buf);
     });
-    res.end(buf);
   });
 }
 
@@ -130,12 +175,17 @@ const server = http.createServer(async (req, res) => {
   const url = (req.url || "").split("?")[0];
 
   if (req.method === "GET" && url.startsWith("/api/health")) {
-    sendJson(res, 200, {
-      ok: true,
-      atlas: !!getAtlasKey(),
-      model: MODEL,
-      build: "futura-atlas",
-    }, origin);
+    sendJson(
+      res,
+      200,
+      {
+        ok: true,
+        atlas: !!getAtlasKey(),
+        model: MODEL,
+        build: "futura-atlas-19",
+      },
+      origin
+    );
     return;
   }
 
@@ -144,9 +194,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 403, { error: "origin not allowed" }, origin);
       return;
     }
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      req.socket.remoteAddress ||
-      "unknown";
+    const ip = clientIp(req);
     if (!allowRequest(ip)) {
       sendJson(res, 429, { error: "rate limit" }, origin);
       return;
@@ -154,7 +202,11 @@ const server = http.createServer(async (req, res) => {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw.toString("utf8"));
-      const out = await atlasReage(body.image, Number(body.sourceAge), Number(body.targetAge));
+      const out = await atlasReage(
+        body.image,
+        Number(body.sourceAge),
+        Number(body.targetAge)
+      );
       sendJson(
         res,
         200,
@@ -163,7 +215,12 @@ const server = http.createServer(async (req, res) => {
       );
     } catch (err) {
       console.error("reage", err.message);
-      sendJson(res, err.status || 500, { error: err.message || "reage failed" }, origin);
+      sendJson(
+        res,
+        err.status || 500,
+        { error: err.message || "reage failed" },
+        origin
+      );
     }
     return;
   }
@@ -176,8 +233,8 @@ const server = http.createServer(async (req, res) => {
   res.end("method not allowed");
 });
 
-server.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, "127.0.0.1", () => {
   console.log(
-    `Futura+Atlas on http://127.0.0.1:${PORT}  atlas=${getAtlasKey() ? "yes" : "NO KEY"}`
+    `Futura local preview http://127.0.0.1:${PORT}  atlas=${getAtlasKey() ? "yes" : "NO KEY"}`
   );
 });

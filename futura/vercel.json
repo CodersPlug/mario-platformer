@@ -1,12 +1,9 @@
 {
   "version": 2,
   "functions": {
-    "api/reage.js": {
+    "api/**/*.js": {
       "maxDuration": 60,
       "memory": 1024
-    },
-    "api/health.js": {
-      "maxDuration": 10
     }
   },
   "headers": [
