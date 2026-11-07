@@ -50,7 +50,6 @@
     landmarks: null,
     faceBox: null,
     camStarting: false,
-    frames: Object.create(null),
     slideshowTimer: null,
     lastShownAge: null,
   };
@@ -514,9 +513,15 @@
     const map = drawCover(ctx, cartoon, w, h);
 
     const delta = targetAge - baseAge;
-    // Strong curves so small slider moves are obvious
-    const tOld = clamp(Math.max(0, delta) / 18, 0, 1);
-    const tYoung = clamp(Math.max(0, -delta) / 12, 0, 1);
+    // Ease-out so the first years change fast but the look keeps evolving
+    // all the way to 100 / 1 instead of saturating early.
+    const easeOut = function (x) {
+      return 1 - Math.pow(1 - x, 1.8);
+    };
+    const spanOld = Math.max(12, 100 - baseAge);
+    const spanYoung = Math.max(8, baseAge - 1);
+    const tOld = easeOut(clamp(Math.max(0, delta) / spanOld, 0, 1));
+    const tYoung = easeOut(clamp(Math.max(0, -delta) / spanYoung, 0, 1));
 
     if (tOld > 0) {
       ctx.save();
@@ -645,57 +650,6 @@
     ctx.stroke();
   }
 
-  function makeFrame(age, force) {
-    const key = String(age);
-    if (!force && state.frames[key]) return state.frames[key];
-    if (!state.cartoonCanvas || state.baseAge == null) return null;
-    const c = document.createElement("canvas");
-    c.width = state.cartoonCanvas.width;
-    c.height = state.cartoonCanvas.height;
-    paintAgeOnto(c, age, state.baseAge);
-    state.frames[key] = c;
-    return c;
-  }
-
-  function agesToPrebuild(base) {
-    const set = {};
-    set[base] = true;
-    for (let a = 1; a <= 100; a += FRAME_STEP) set[a] = true;
-    // denser near base
-    for (let d = -15; d <= 40; d += 3) {
-      const a = clamp(base + d, 1, 100);
-      set[a] = true;
-    }
-    return Object.keys(set)
-      .map(Number)
-      .sort(function (x, y) {
-        return x - y;
-      });
-  }
-
-  async function buildSlideshowFrames(base, onProg) {
-    state.frames = Object.create(null);
-    const ages = agesToPrebuild(base);
-    for (let i = 0; i < ages.length; i++) {
-      makeFrame(ages[i]);
-      if (onProg) {
-        onProg(92 + (i / ages.length) * 7);
-      }
-      // Yield so UI can paint progress
-      if (i % 3 === 0) await wait(0);
-    }
-  }
-
-  function paintFrameToOutput(frame) {
-    const size = resizeOutToFrame();
-    if (size.cw < 4 || size.ch < 4 || !frame) return false;
-    const ctx = els.out.getContext("2d");
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, size.cw, size.ch);
-    drawCover(ctx, frame, size.cw, size.ch);
-    return true;
-  }
-
   function updateAgeChrome(age, opts) {
     opts = opts || {};
     els.ageReadout.textContent = String(age);
@@ -706,21 +660,36 @@
     setFaceEl(els.stageIcon, age);
   }
 
-  /** Live paint into #out at display size (always regenerates visible result). */
+  /**
+   * Paint the aged caricature straight into #out.
+   * No per-age offscreen canvases: iOS Safari has a hard canvas-memory cap
+   * and silently stops drawing once it is exceeded.
+   */
   function paintLiveToOutput(age) {
     const size = resizeOutToFrame();
     if (size.cw < 4 || size.ch < 4 || !state.cartoonCanvas) return false;
-    const ctx = els.out.getContext("2d");
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, size.cw, size.ch);
-    // Paint aged version directly at output resolution so the change is crisp
-    const tmp = document.createElement("canvas");
-    tmp.width = state.cartoonCanvas.width;
-    tmp.height = state.cartoonCanvas.height;
-    paintAgeOnto(tmp, age, state.baseAge);
-    state.frames[String(age)] = tmp;
-    drawCover(ctx, tmp, size.cw, size.ch);
+    paintAgeOnto(els.out, age, state.baseAge);
     return true;
+  }
+
+  let pendingAge = null;
+  let rafQueued = false;
+  function scheduleLivePaint(age) {
+    pendingAge = age;
+    if (rafQueued) return;
+    rafQueued = true;
+    requestAnimationFrame(function () {
+      rafQueued = false;
+      const a = pendingAge;
+      pendingAge = null;
+      if (a == null) return;
+      if (!paintLiveToOutput(a)) {
+        // Layout not ready yet — try once more next frame
+        requestAnimationFrame(function () {
+          paintLiveToOutput(a);
+        });
+      }
+    });
   }
 
   function showAge(age, opts) {
@@ -728,19 +697,10 @@
     age = clamp(Math.round(age), 1, 100);
     if (!state.cartoonCanvas || state.baseAge == null) return;
 
-    let ok = false;
-    if (opts.live) {
-      ok = paintLiveToOutput(age);
+    if (opts.immediate) {
+      if (!paintLiveToOutput(age)) scheduleLivePaint(age);
     } else {
-      let frame = state.frames[String(age)];
-      if (!frame) frame = makeFrame(age);
-      ok = paintFrameToOutput(frame);
-    }
-
-    if (!ok) {
-      requestAnimationFrame(function () {
-        paintLiveToOutput(age);
-      });
+      scheduleLivePaint(age);
     }
 
     updateAgeChrome(age, { syncSlider: opts.syncSlider !== false });
@@ -769,10 +729,10 @@
     let i = 0;
     function step() {
       if (i >= path.length) {
-        showAge(base, { flash: true });
+        showAge(base, { flash: true, immediate: true });
         return;
       }
-      showAge(path[i], { flash: i > 0 });
+      showAge(path[i], { flash: i > 0, immediate: true });
       i += 1;
       state.slideshowTimer = setTimeout(step, i === path.length ? 200 : 160);
     }
@@ -797,7 +757,7 @@
     els.btnAgain.hidden = false;
 
     afterLayout(function () {
-      showAge(age);
+      showAge(age, { immediate: true });
       playSlideshow(age);
     });
   }
@@ -816,7 +776,6 @@
     state.landmarks = null;
     state.faceBox = null;
     state.baseAge = null;
-    state.frames = Object.create(null);
     state.lastShownAge = null;
 
     try {
@@ -855,8 +814,8 @@
       }
 
       state.baseAge = det.age;
-      setProgress(92);
-      await buildSlideshowFrames(det.age, setProgress);
+      setProgress(96);
+      await wait(120);
       setProgress(100);
       await wait(180);
 
@@ -895,7 +854,6 @@
     state.landmarks = null;
     state.faceBox = null;
     state.baseAge = null;
-    state.frames = Object.create(null);
     state.lastShownAge = null;
     els.ageDock.hidden = true;
     els.btnAgain.hidden = true;
@@ -957,12 +915,12 @@
       if (!state.cartoonCanvas) return;
       setBusy(true);
       state.baseAge = age;
-      await buildSlideshowFrames(age, setProgress);
+      await wait(60);
       setBusy(false);
       els.manualAge.hidden = true;
       els.ageDock.hidden = false;
       afterLayout(function () {
-        showAge(age);
+        showAge(age, { immediate: true });
         playSlideshow(age);
       });
     });
@@ -981,7 +939,7 @@
       ev.type === "touchend" ||
       ev.type === "mouseup";
     showAge(age, {
-      live: true,
+      immediate: releasing,
       syncSlider: false,
       flash: releasing,
     });
@@ -997,7 +955,9 @@
       drawPreview(state.pendingCanvas);
     }
     if (state.cartoonCanvas && state.baseAge != null) {
-      showAge(parseInt(els.ageSlider.value, 10) || state.baseAge);
+      showAge(parseInt(els.ageSlider.value, 10) || state.baseAge, {
+        immediate: true,
+      });
     }
   });
 
