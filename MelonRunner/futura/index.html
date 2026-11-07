@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Cuando sea vieja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <h1 class="brand">Cuando sea vieja</h1>
+      <button type="button" id="btnAgain" class="icon-btn" hidden aria-label="Otra foto">↺</button>
+    </header>
+
+    <main class="viewport">
+      <!-- Capture -->
+      <section id="screenCapture" class="screen">
+        <div class="camera-frame">
+          <video id="video" playsinline autoplay muted></video>
+          <canvas id="snap" hidden></canvas>
+          <p id="camHint" class="hint">Tocá para usar la cámara de adelante</p>
+        </div>
+        <button type="button" id="btnStartCam" class="primary">Abrir cámara</button>
+        <button type="button" id="btnShoot" class="primary shoot" hidden>Tomar foto</button>
+        <p class="fine">La foto se queda en tu iPad. No se sube a internet.</p>
+      </section>
+
+      <!-- Result -->
+      <section id="screenResult" class="screen" hidden>
+        <div class="photo-frame">
+          <canvas id="out"></canvas>
+          <p id="ageBadge" class="age-badge">6 años</p>
+        </div>
+        <p id="statusLine" class="status">Detectando edad…</p>
+      </section>
+    </main>
+
+    <footer id="ageDock" class="age-dock" hidden>
+      <div class="dock-labels">
+        <span>Más chica</span>
+        <strong id="ageReadout">6</strong>
+        <span>Más grande</span>
+      </div>
+      <input
+        id="ageSlider"
+        type="range"
+        min="1"
+        max="90"
+        value="6"
+        step="1"
+        aria-label="Edad"
+      />
+      <p id="storyLine" class="story">Así te ves ahora.</p>
+    </footer>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
+  <script defer src="app.js"></script>
+</body>
+</html>

@@ -11,17 +11,20 @@ No usa IP de Sonic. No requiere la app Melon.
 
 ## Jugar en el iPad
 
-**https://codersplug.github.io/mario-platformer/**
+**Azulín:** https://codersplug.github.io/mario-platformer/  
+**Cuando sea vieja** (selfie + slider de edad): https://codersplug.github.io/mario-platformer/futura/
 
-Safari → esa URL (Add to Home Screen si querés). Publicado desde el branch `gh-pages` (copia de [`play/`](play/)).
+Safari → Add to Home Screen si querés. Publicado desde `gh-pages`.
 
 ### Local
 
 ```bash
 cd MelonRunner/play && python3 -m http.server 8080
+# otra terminal:
+cd MelonRunner/futura && python3 -m http.server 8081
 ```
 
-Abrí `http://localhost:8080`.
+Azulín: `http://localhost:8080` · Futura: `http://localhost:8081`
 
 ## Qué imita de Melon
 
@@ -51,6 +54,7 @@ No clona Workshop, Lua Chip nativo, armas ni gore de Melon (orientado a juego fa
 | [`programa-polgar.md`](programa-polgar.md) | Curriculum Polgár multi-juego |
 | [`catalogo-juegos.md`](catalogo-juegos.md) | Fichas digital / físico / híbrido |
 | [`tablero-semanal.md`](tablero-semanal.md) | Log semanal (modalidad + pantalla) |
+| [`futura/`](futura/) | App web iPad: selfie → edad → slider |
 
 ## Controles
 

@@ -124,6 +124,7 @@ Fichas completas en [`catalogo-juegos.md`](catalogo-juegos.md).
 | D1 | Azulín | Digital | Lógica, mate, ritmo (una opción más) |
 | D2 | Ritmo / eco en iPad | Digital | Música, lógica |
 | D3 | Scratch Jr / bloques | Digital | Lógica (nivel D) |
+| D4 | Cuando sea vieja | Digital | Imaginar el yo futuro (selfie + slider) |
 | F1 | Cartas “Si… entonces…” | Físico | Lógica |
 | F2 | Carrera de patrones | Físico | Mate |
 | F3 | Cocina arcoíris | Físico | Alimentación |
