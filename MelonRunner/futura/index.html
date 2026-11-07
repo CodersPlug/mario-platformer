@@ -19,44 +19,68 @@
     </header>
 
     <main class="viewport">
-      <!-- Capture -->
-      <section id="screenCapture" class="screen">
-        <div class="camera-frame">
+      <!-- 1. Pedir imagen -->
+      <section id="screenAsk" class="screen">
+        <div class="ask-card">
+          <p class="ask-title">¿Cómo te ves hoy?</p>
+          <p class="ask-sub">Una foto por sesión. Se procesa en tu iPad; no se sube.</p>
+          <div class="ask-actions">
+            <button type="button" id="btnCamera" class="primary">Cámara frontal</button>
+            <label class="primary secondary file-btn">
+              Elegir imagen
+              <input id="fileInput" type="file" accept="image/*" hidden />
+            </label>
+          </div>
+        </div>
+
+        <div id="cameraBox" class="camera-frame" hidden>
           <video id="video" playsinline autoplay muted></video>
           <canvas id="snap" hidden></canvas>
-          <p id="camHint" class="hint">Tocá para usar la cámara de adelante</p>
+          <button type="button" id="btnShoot" class="primary shoot floating">Tomar foto</button>
         </div>
-        <button type="button" id="btnStartCam" class="primary">Abrir cámara</button>
-        <button type="button" id="btnShoot" class="primary shoot" hidden>Tomar foto</button>
-        <p class="fine">La foto se queda en tu iPad. No se sube a internet.</p>
       </section>
 
-      <!-- Result -->
+      <!-- 2. Progreso -->
+      <section id="screenProgress" class="screen" hidden>
+        <div class="progress-card">
+          <p id="progressTitle" class="ask-title">Procesando…</p>
+          <p id="progressDetail" class="ask-sub">Preparando</p>
+          <div class="bar-track" aria-hidden="true">
+            <div id="barFill" class="bar-fill"></div>
+          </div>
+          <p id="progressPct" class="progress-pct">0%</p>
+        </div>
+      </section>
+
+      <!-- 3. Resultado -->
       <section id="screenResult" class="screen" hidden>
         <div class="photo-frame">
           <canvas id="out"></canvas>
-          <p id="ageBadge" class="age-badge">6 años</p>
+          <p id="ageBadge" class="age-badge">—</p>
         </div>
-        <p id="statusLine" class="status">Detectando edad…</p>
+        <div id="ageAnnounce" class="announce" role="status" aria-live="polite">
+          <p class="announce-kicker">Edad detectada</p>
+          <p id="announceAge" class="announce-age">—</p>
+          <p id="statusLine" class="status">Mové el slider para viajar en el tiempo.</p>
+        </div>
+        <div id="manualAge" class="manual" hidden>
+          <p>No pudimos estimar la edad. ¿Cuántos años tenés?</p>
+          <div class="manual-row">
+            <input id="manualInput" type="number" min="1" max="100" inputmode="numeric" />
+            <button type="button" id="btnManualOk" class="primary shoot">Usar</button>
+          </div>
+        </div>
       </section>
     </main>
 
     <footer id="ageDock" class="age-dock" hidden>
       <div class="dock-labels">
-        <span>Más chica</span>
-        <strong id="ageReadout">6</strong>
+        <span>Más joven</span>
+        <strong id="ageReadout">—</strong>
         <span>Más grande</span>
       </div>
-      <input
-        id="ageSlider"
-        type="range"
-        min="1"
-        max="90"
-        value="6"
-        step="1"
-        aria-label="Edad"
-      />
-      <p id="storyLine" class="story">Así te ves ahora.</p>
+      <input id="ageSlider" type="range" min="1" max="100" value="30" step="1" aria-label="Edad" />
+      <p id="storyLine" class="story"></p>
     </footer>
   </div>
 
