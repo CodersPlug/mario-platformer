@@ -221,6 +221,30 @@ body {
   transform: scale(0.96);
 }
 
+.cam-btn.ghost {
+  background: linear-gradient(145deg, #fff, #e8f4ff);
+  color: #2a6fb5;
+  box-shadow:
+    0 14px 32px rgba(42, 111, 181, 0.22),
+    inset 0 0 0 4px rgba(42, 111, 181, 0.12);
+}
+
+.cam-btn.ok {
+  background: linear-gradient(145deg, #eafff4, #b8f5d4);
+  color: #128a56;
+  box-shadow:
+    0 14px 32px rgba(18, 138, 86, 0.25),
+    inset 0 0 0 4px rgba(18, 138, 86, 0.14);
+}
+
+.preview-actions {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .bar-track {
   height: 14px;
   border-radius: 999px;
