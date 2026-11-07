@@ -6,25 +6,49 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Cuando sea vieja</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="app">
     <header class="topbar">
-      <h1 class="brand">Cuando sea vieja</h1>
-      <button type="button" id="btnAgain" class="icon-btn corner" hidden aria-label="Otra foto">↺</button>
+      <div class="brand-mark" aria-hidden="true">
+        <svg class="brand-svg" viewBox="0 0 160 48" aria-hidden="true">
+          <!-- baby -->
+          <circle cx="22" cy="24" r="14" fill="#ffd6a8"/>
+          <circle cx="17" cy="22" r="1.8" fill="#3a2a28"/>
+          <circle cx="27" cy="22" r="1.8" fill="#3a2a28"/>
+          <path d="M17 29c2.5 2.5 7.5 2.5 10 0" fill="none" stroke="#3a2a28" stroke-width="1.8" stroke-linecap="round"/>
+          <!-- arrow -->
+          <path d="M48 24h28" stroke="#e23d6d" stroke-width="3" stroke-linecap="round"/>
+          <path d="M70 16l10 8-10 8" fill="none" stroke="#e23d6d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- sparkles -->
+          <circle cx="90" cy="14" r="2.2" fill="#ffc44d"/>
+          <circle cx="98" cy="34" r="1.6" fill="#6ec8ff"/>
+          <!-- elder -->
+          <circle cx="130" cy="24" r="14" fill="#f0e0d0"/>
+          <path d="M116 18c6-10 22-10 28 0" fill="#f5f5f8"/>
+          <circle cx="125" cy="23" r="1.6" fill="#3a2a28"/>
+          <circle cx="135" cy="23" r="1.6" fill="#3a2a28"/>
+          <path d="M124 30c3 2.2 9 2.2 12 0" fill="none" stroke="#3a2a28" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M118 28c2 4 6 6 12 6s10-2 12-6" fill="none" stroke="rgba(90,60,50,0.35)" stroke-width="1.4"/>
+        </svg>
+      </div>
+      <button type="button" id="btnAgain" class="icon-btn corner" hidden aria-label="Otra foto">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M14 18a14 14 0 1 1-2 10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+          <path d="M10 10v10h10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </header>
 
     <main class="viewport">
-      <!-- 1. Cámara en vivo -->
       <section id="screenAsk" class="screen">
         <div id="cameraBox" class="camera-frame">
           <video id="video" playsinline autoplay muted></video>
           <canvas id="snap" hidden></canvas>
-          <p id="camStatus" class="cam-status" hidden></p>
+          <div id="camStatus" class="cam-status" hidden aria-hidden="true">
+            <span class="pulse-dot"></span>
+          </div>
         </div>
         <button type="button" id="btnShoot" class="cam-btn" aria-label="Tomar foto" disabled>
           <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -36,17 +60,15 @@
         </button>
       </section>
 
-      <!-- 2. Previsualizar antes de detectar -->
       <section id="screenPreview" class="screen" hidden>
         <div class="photo-frame">
           <canvas id="preview"></canvas>
         </div>
         <div class="preview-actions">
           <button type="button" id="btnRetake" class="cam-btn ghost" aria-label="Repetir foto">
-            <svg viewBox="0 0 64 64" aria-hidden="true">
-              <rect x="8" y="18" width="48" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="4"/>
-              <circle cx="32" cy="35" r="11" fill="none" stroke="currentColor" stroke-width="4"/>
-              <path d="M22 18l4-8h12l4 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M14 18a14 14 0 1 1-2 10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+              <path d="M10 10v10h10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           <button type="button" id="btnUsePhoto" class="cam-btn ok" aria-label="Usar esta foto">
@@ -57,47 +79,62 @@
         </div>
       </section>
 
-      <!-- 3. Progreso -->
       <section id="screenProgress" class="screen" hidden>
-        <div class="progress-card">
-          <p id="progressTitle" class="ask-title">Procesando…</p>
-          <p id="progressDetail" class="ask-sub">Preparando</p>
+        <div class="progress-stage" aria-busy="true" aria-label="Procesando">
+          <div class="progress-orbit">
+            <div id="progressFace" class="progress-face face-kid" aria-hidden="true"></div>
+            <div class="orbit-ring"></div>
+            <div class="spark s1"></div>
+            <div class="spark s2"></div>
+            <div class="spark s3"></div>
+          </div>
           <div class="bar-track" aria-hidden="true">
             <div id="barFill" class="bar-fill"></div>
           </div>
-          <p id="progressPct" class="progress-pct">0%</p>
+          <div id="progressTicks" class="progress-ticks" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
         </div>
       </section>
 
-      <!-- 4. Resultado -->
       <section id="screenResult" class="screen" hidden>
-        <div class="photo-frame">
+        <div class="photo-frame result-frame">
           <canvas id="out"></canvas>
-          <p id="ageBadge" class="age-badge">—</p>
-        </div>
-        <div id="ageAnnounce" class="announce" role="status" aria-live="polite">
-          <p class="announce-kicker">Edad detectada</p>
-          <p id="announceAge" class="announce-age">—</p>
-          <p id="statusLine" class="status">Mové el slider para viajar en el tiempo.</p>
-        </div>
-        <div id="manualAge" class="manual" hidden>
-          <p>No pudimos estimar la edad. ¿Cuántos años tenés?</p>
-          <div class="manual-row">
-            <input id="manualInput" type="number" min="1" max="100" inputmode="numeric" />
-            <button type="button" id="btnManualOk" class="primary shoot">Usar</button>
+          <div id="redrawFlash" class="redraw-flash" hidden aria-hidden="true"></div>
+          <div id="busyOverlay" class="busy-overlay" hidden aria-hidden="true">
+            <div class="busy-spinner"></div>
           </div>
+          <div id="stageBadge" class="stage-badge" aria-hidden="true">
+            <span id="stageIcon" class="stage-icon face-kid"></span>
+          </div>
+        </div>
+        <div id="manualAge" class="manual-icons" hidden>
+          <button type="button" class="stage-pick" data-age="4" aria-label="Bebé">
+            <span class="stage-icon face-baby"></span>
+          </button>
+          <button type="button" class="stage-pick" data-age="8" aria-label="Niña">
+            <span class="stage-icon face-kid"></span>
+          </button>
+          <button type="button" class="stage-pick" data-age="16" aria-label="Joven">
+            <span class="stage-icon face-teen"></span>
+          </button>
+          <button type="button" class="stage-pick" data-age="35" aria-label="Adulta">
+            <span class="stage-icon face-adult"></span>
+          </button>
+          <button type="button" class="stage-pick" data-age="70" aria-label="Abuela">
+            <span class="stage-icon face-elder"></span>
+          </button>
         </div>
       </section>
     </main>
 
     <footer id="ageDock" class="age-dock" hidden>
-      <div class="dock-labels">
-        <span>Más joven</span>
-        <strong id="ageReadout">—</strong>
-        <span>Más grande</span>
+      <div class="dock-icons">
+        <span class="stage-icon face-baby dock-end" aria-hidden="true"></span>
+        <span id="ageReadout" class="age-num" aria-hidden="true">—</span>
+        <span class="stage-icon face-elder dock-end" aria-hidden="true"></span>
       </div>
       <input id="ageSlider" type="range" min="1" max="100" value="30" step="1" aria-label="Edad" />
-      <p id="storyLine" class="story"></p>
     </footer>
   </div>
 
