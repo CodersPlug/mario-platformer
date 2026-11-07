@@ -6,8 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Cuando sea vieja</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <script>window.__FUTURA_BUILD = 13;</script>
-  <link rel="stylesheet" href="style.v13.css" />
+  <script>window.__FUTURA_BUILD = 14;</script>
+  <link rel="stylesheet" href="style.v14.css" />
 </head>
 <body>
   <div id="app">
@@ -29,7 +29,7 @@
           <path d="M124 30c3 2.2 9 2.2 12 0" fill="none" stroke="#3a2a28" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <span id="buildTag" class="build-tag" aria-hidden="true">13</span>
+      <span id="buildTag" class="build-tag" aria-hidden="true">14</span>
       <button type="button" id="btnAgain" class="icon-btn corner" hidden aria-label="Otra foto">
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <path d="M14 18a14 14 0 1 1-2 10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -91,7 +91,13 @@
       <section id="screenResult" class="screen" hidden>
         <div class="photo-frame result-frame" id="resultFrame">
           <img id="outImg" class="out-img" alt="" draggable="false" />
-          <div id="busyOverlay" class="busy-overlay" hidden><div class="busy-spinner"></div></div>
+          <div id="busyOverlay" class="busy-overlay" hidden aria-busy="true">
+            <div class="gen-cue" aria-hidden="true">
+              <div class="gen-ring"></div>
+              <div class="gen-face face-kid" id="genFace"></div>
+              <div class="gen-bar"><i id="genBarFill"></i></div>
+            </div>
+          </div>
         </div>
         <div id="manualAge" class="manual-icons" hidden>
           <button type="button" class="stage-pick" data-age="8"><span class="stage-icon face-kid"></span></button>
@@ -102,18 +108,7 @@
     </main>
 
     <footer id="ageDock" class="age-dock" hidden>
-      <div class="jump-row" id="jumpRow">
-        <button type="button" class="jump-btn" data-age="8"><span class="stage-icon face-baby"></span></button>
-        <button type="button" class="jump-btn" data-age="16"><span class="stage-icon face-kid"></span></button>
-        <button type="button" class="jump-btn" data-age="30"><span class="stage-icon face-teen"></span></button>
-        <button type="button" class="jump-btn" data-age="55"><span class="stage-icon face-adult"></span></button>
-        <button type="button" class="jump-btn" data-age="80"><span class="stage-icon face-elder"></span></button>
-      </div>
-      <div class="dock-icons">
-        <span class="stage-icon face-baby dock-end"></span>
-        <span id="ageReadout" class="age-num">—</span>
-        <span class="stage-icon face-elder dock-end"></span>
-      </div>
+      <div id="ageReadout" class="age-num">—</div>
       <div id="scrub" class="scrub" role="slider" aria-valuemin="1" aria-valuemax="100" aria-valuenow="30" tabindex="0">
         <div class="scrub-track"></div>
         <div id="scrubFill" class="scrub-fill"></div>
@@ -124,7 +119,7 @@
 
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
-  <script defer src="fran.js"></script>
-  <script defer src="app.v13.js"></script>
+  <script defer src="fran.js?b=14"></script>
+  <script defer src="app.v14.js"></script>
 </body>
 </html>
