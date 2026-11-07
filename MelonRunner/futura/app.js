@@ -497,48 +497,11 @@
       }
     }
     ctx.putImageData(img, 0, 0);
-
-    if (state.landmarks) {
-      const positions = state.landmarks.positions;
-      const sx = w / source.width;
-      const sy = h / source.height;
-      ctx.save();
-      ctx.strokeStyle = "rgba(40, 24, 30, 0.9)";
-      ctx.lineWidth = Math.max(2.5, w * 0.007);
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      for (let i = 0; i <= 16; i++) {
-        const p = positions[i];
-        const x = p.x * sx;
-        const y = p.y * sy;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      const eyePairs = [
-        [36, 39],
-        [42, 45],
-      ];
-      for (let e = 0; e < eyePairs.length; e++) {
-        const a = positions[eyePairs[e][0]];
-        const b = positions[eyePairs[e][1]];
-        const cx = ((a.x + b.x) / 2) * sx;
-        const cy = ((a.y + b.y) / 2) * sy;
-        const rad = Math.abs(b.x - a.x) * sx * 0.9;
-        ctx.beginPath();
-        ctx.arc(cx, cy, Math.max(7, rad), 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = "rgba(20,20,30,0.92)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, Math.max(3, rad * 0.38), 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
+    // Soft posterize only — no drawn eyes/jaw (those looked creepy).
     return c;
   }
 
+  /** Paint aged caricature into target (no fake eyeballs). */
   function paintAgeOnto(targetCanvas, targetAge, baseAge) {
     const w = targetCanvas.width;
     const h = targetCanvas.height;
@@ -547,158 +510,127 @@
     ctx.clearRect(0, 0, w, h);
 
     const cartoon = state.cartoonCanvas;
+    if (!cartoon) return;
     const map = drawCover(ctx, cartoon, w, h);
-    const sx = cartoon.width / state.sourceCanvas.width;
-    const sy = cartoon.height / state.sourceCanvas.height;
-    const get = function (i) {
-      const p = state.landmarks
-        ? state.landmarks.positions[i]
-        : { x: 0, y: 0 };
-      return {
-        x: p.x * sx * map.scale + map.dx,
-        y: p.y * sy * map.scale + map.dy,
-      };
-    };
 
     const delta = targetAge - baseAge;
-    const tOld = clamp(Math.max(0, delta) / 25, 0, 1);
-    const tYoung = clamp(Math.max(0, -delta) / 15, 0, 1);
+    // Strong curves so small slider moves are obvious
+    const tOld = clamp(Math.max(0, delta) / 18, 0, 1);
+    const tYoung = clamp(Math.max(0, -delta) / 12, 0, 1);
 
-    // Always-visible color grade so every slider step looks different
     if (tOld > 0) {
       ctx.save();
-      ctx.globalAlpha = 0.15 + tOld * 0.55;
-      ctx.fillStyle = "#c4a882";
       ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = 0.22 + tOld * 0.62;
+      ctx.fillStyle = "#c9a882";
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
 
       ctx.save();
       ctx.globalCompositeOperation = "saturation";
-      ctx.globalAlpha = 0.2 + tOld * 0.7;
-      ctx.fillStyle = "#888";
+      ctx.globalAlpha = 0.25 + tOld * 0.75;
+      ctx.fillStyle = "#777";
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
 
-      // White hair veil
+      // Silver hair wash (top of head only)
       ctx.save();
-      ctx.globalAlpha = 0.12 + tOld * 0.55;
-      const g = ctx.createLinearGradient(0, 0, 0, h * 0.45);
-      g.addColorStop(0, "rgba(245,245,250,1)");
-      g.addColorStop(1, "rgba(245,245,250,0)");
+      ctx.globalAlpha = 0.18 + tOld * 0.62;
+      const g = ctx.createLinearGradient(0, 0, 0, h * 0.42);
+      g.addColorStop(0, "rgba(248,248,252,1)");
+      g.addColorStop(0.55, "rgba(248,248,252,0.35)");
+      g.addColorStop(1, "rgba(248,248,252,0)");
       ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h * 0.45);
+      ctx.fillRect(0, 0, w, h * 0.42);
       ctx.restore();
+
+      // Soft wrinkle hints from landmarks (lines only — never cover eyes)
+      if (state.landmarks) {
+        const sx = cartoon.width / state.sourceCanvas.width;
+        const sy = cartoon.height / state.sourceCanvas.height;
+        const get = function (i) {
+          const p = state.landmarks.positions[i];
+          return {
+            x: p.x * sx * map.scale + map.dx,
+            y: p.y * sy * map.scale + map.dy,
+          };
+        };
+        ctx.save();
+        ctx.strokeStyle = "rgba(90, 55, 45," + (0.2 + tOld * 0.45) + ")";
+        ctx.lineWidth = Math.max(1.5, w * 0.0035);
+        ctx.lineCap = "round";
+        // Forehead lines
+        const a = get(19);
+        const b = get(24);
+        const midY = (a.y + b.y) / 2 - (b.x - a.x) * 0.18;
+        const n = 1 + Math.round(tOld * 2);
+        for (let i = 0; i < n; i++) {
+          ctx.beginPath();
+          ctx.moveTo(a.x + 12, midY + i * 7 * tOld);
+          ctx.quadraticCurveTo(
+            (a.x + b.x) / 2,
+            midY - 5 + i * 7 * tOld,
+            b.x - 12,
+            midY + i * 7 * tOld
+          );
+          ctx.stroke();
+        }
+        // Smile lines (no crow-feet through the eyeball)
+        smileLine(ctx, get(48), get(3), tOld * 0.85);
+        smileLine(ctx, get(54), get(13), tOld * 0.85);
+        ctx.restore();
+      }
     }
 
     if (tYoung > 0) {
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = 0.2 + tYoung * 0.5;
-      ctx.fillStyle = "#ffd0b8";
+      ctx.globalAlpha = 0.22 + tYoung * 0.55;
+      ctx.fillStyle = "#ffd4bc";
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
+
       ctx.save();
       ctx.globalCompositeOperation = "overlay";
-      ctx.globalAlpha = tYoung * 0.35;
-      ctx.fillStyle = "#ff9ec0";
+      ctx.globalAlpha = 0.12 + tYoung * 0.4;
+      ctx.fillStyle = "#ffb0c8";
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
-    }
 
-    if (state.landmarks) {
-      if (tOld > 0) {
-        ctx.save();
-        ctx.strokeStyle =
-          "rgba(70, 40, 35," + (0.4 + tOld * 0.55) + ")";
-        ctx.lineWidth = Math.max(2.5, w * 0.006 * (0.8 + tOld));
-        ctx.lineCap = "round";
-        drawCrow(ctx, get(36), get(39), tOld, -1);
-        drawCrow(ctx, get(45), get(42), tOld, 1);
-        smileLine(ctx, get(48), get(3), tOld);
-        smileLine(ctx, get(54), get(13), tOld);
-        const a = get(19);
-        const b = get(24);
-        const midY = (a.y + b.y) / 2 - (b.x - a.x) * 0.2;
-        for (let i = 0; i < 4; i++) {
-          ctx.beginPath();
-          ctx.moveTo(a.x + 8, midY + i * 8 * tOld);
-          ctx.quadraticCurveTo(
-            (a.x + b.x) / 2,
-            midY - 8 + i * 8 * tOld,
-            b.x - 8,
-            midY + i * 8 * tOld
-          );
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-
-      if (tYoung > 0) {
-        const eyes = [
-          [36, 39],
-          [42, 45],
-        ];
-        for (let e = 0; e < eyes.length; e++) {
-          const p0 = get(eyes[e][0]);
-          const p1 = get(eyes[e][1]);
-          const cx = (p0.x + p1.x) / 2;
-          const cy = (p0.y + p1.y) / 2;
-          const rad = Math.abs(p1.x - p0.x) * (0.75 + tYoung * 0.65);
-          ctx.save();
-          ctx.fillStyle =
-            "rgba(255,255,255," + (0.3 + tYoung * 0.4) + ")";
-          ctx.beginPath();
-          ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "#1a1a28";
-          ctx.beginPath();
-          ctx.arc(cx, cy, rad * 0.42, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "rgba(255,255,255,0.85)";
-          ctx.beginPath();
-          ctx.arc(cx - rad * 0.25, cy - rad * 0.25, rad * 0.15, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-        // Rosy cheeks
-        ctx.save();
-        ctx.fillStyle = "rgba(255,120,140," + (0.15 + tYoung * 0.35) + ")";
+      // Soft rosy cheeks only (no eye redraw)
+      if (state.landmarks) {
+        const sx = cartoon.width / state.sourceCanvas.width;
+        const sy = cartoon.height / state.sourceCanvas.height;
+        const get = function (i) {
+          const p = state.landmarks.positions[i];
+          return {
+            x: p.x * sx * map.scale + map.dx,
+            y: p.y * sy * map.scale + map.dy,
+          };
+        };
         const cheekL = get(3);
         const cheekR = get(13);
+        const rr = Math.max(10, w * 0.045);
+        ctx.save();
+        ctx.fillStyle = "rgba(255,130,150," + (0.18 + tYoung * 0.4) + ")";
         ctx.beginPath();
-        ctx.ellipse(cheekL.x, cheekL.y, w * 0.04, h * 0.025, 0, 0, Math.PI * 2);
+        ctx.arc(cheekL.x, cheekL.y, rr, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.ellipse(cheekR.x, cheekR.y, w * 0.04, h * 0.025, 0, 0, Math.PI * 2);
+        ctx.arc(cheekR.x, cheekR.y, rr, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
     }
 
-    // Age ring tint on border so change is obvious even without landmarks
+    // Colored frame so every age step is unmistakably different
     ctx.save();
-    ctx.globalAlpha = 0.35 + Math.max(tOld, tYoung) * 0.45;
-    ctx.lineWidth = Math.max(10, w * 0.03);
-    ctx.strokeStyle = tOld > tYoung ? "#d4b896" : "#ffb0c8";
-    ctx.strokeRect(4, 4, w - 8, h - 8);
+    const accent = tOld >= tYoung ? "#c9a06a" : "#ff8fb3";
+    ctx.globalAlpha = 0.4 + Math.max(tOld, tYoung) * 0.55;
+    ctx.lineWidth = Math.max(12, w * 0.035);
+    ctx.strokeStyle = accent;
+    ctx.strokeRect(6, 6, w - 12, h - 12);
     ctx.restore();
-  }
-
-  function drawCrow(ctx, inner, outer, t, dir) {
-    const cx = (inner.x + outer.x) / 2 + dir * 18;
-    const cy = (inner.y + outer.y) / 2;
-    for (let i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - 2 + i * 6);
-      ctx.quadraticCurveTo(
-        cx + dir * (14 + t * 22),
-        cy + i * 4,
-        cx + dir * (26 + t * 24),
-        cy - 8 + i * 10
-      );
-      ctx.stroke();
-    }
   }
 
   function smileLine(ctx, mouth, cheek, t) {
@@ -713,9 +645,9 @@
     ctx.stroke();
   }
 
-  function makeFrame(age) {
+  function makeFrame(age, force) {
     const key = String(age);
-    if (state.frames[key]) return state.frames[key];
+    if (!force && state.frames[key]) return state.frames[key];
     if (!state.cartoonCanvas || state.baseAge == null) return null;
     const c = document.createElement("canvas");
     c.width = state.cartoonCanvas.width;
@@ -764,10 +696,31 @@
     return true;
   }
 
-  function updateAgeChrome(age) {
+  function updateAgeChrome(age, opts) {
+    opts = opts || {};
     els.ageReadout.textContent = String(age);
-    els.ageSlider.value = String(age);
+    // Never rewrite slider.value while the user is dragging — breaks iOS range.
+    if (opts.syncSlider !== false) {
+      els.ageSlider.value = String(age);
+    }
     setFaceEl(els.stageIcon, age);
+  }
+
+  /** Live paint into #out at display size (always regenerates visible result). */
+  function paintLiveToOutput(age) {
+    const size = resizeOutToFrame();
+    if (size.cw < 4 || size.ch < 4 || !state.cartoonCanvas) return false;
+    const ctx = els.out.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, size.cw, size.ch);
+    // Paint aged version directly at output resolution so the change is crisp
+    const tmp = document.createElement("canvas");
+    tmp.width = state.cartoonCanvas.width;
+    tmp.height = state.cartoonCanvas.height;
+    paintAgeOnto(tmp, age, state.baseAge);
+    state.frames[String(age)] = tmp;
+    drawCover(ctx, tmp, size.cw, size.ch);
+    return true;
   }
 
   function showAge(age, opts) {
@@ -775,21 +728,22 @@
     age = clamp(Math.round(age), 1, 100);
     if (!state.cartoonCanvas || state.baseAge == null) return;
 
-    let frame = state.frames[String(age)];
-    if (!frame) {
-      // nearest prebuilt or build now
-      frame = makeFrame(age);
+    let ok = false;
+    if (opts.live) {
+      ok = paintLiveToOutput(age);
+    } else {
+      let frame = state.frames[String(age)];
+      if (!frame) frame = makeFrame(age);
+      ok = paintFrameToOutput(frame);
     }
 
-    const ok = paintFrameToOutput(frame);
     if (!ok) {
-      // Layout not ready — retry next frames
       requestAnimationFrame(function () {
-        paintFrameToOutput(frame);
+        paintLiveToOutput(age);
       });
     }
 
-    updateAgeChrome(age);
+    updateAgeChrome(age, { syncSlider: opts.syncSlider !== false });
     if (opts.flash && state.lastShownAge !== null && state.lastShownAge !== age) {
       flashRedraw();
     }
@@ -1014,14 +968,29 @@
     });
   });
 
-  function onSliderMove() {
+  function onSliderMove(ev) {
     if (state.baseAge == null || !state.cartoonCanvas) return;
     stopSlideshow();
     const age = parseInt(els.ageSlider.value, 10);
-    showAge(age, { flash: true });
+    if (!Number.isFinite(age)) return;
+    // Live regen while dragging; stronger flash when finger/mouse releases.
+    const releasing =
+      !ev ||
+      ev.type === "change" ||
+      ev.type === "pointerup" ||
+      ev.type === "touchend" ||
+      ev.type === "mouseup";
+    showAge(age, {
+      live: true,
+      syncSlider: false,
+      flash: releasing,
+    });
   }
   els.ageSlider.addEventListener("input", onSliderMove);
   els.ageSlider.addEventListener("change", onSliderMove);
+  els.ageSlider.addEventListener("pointerup", onSliderMove);
+  els.ageSlider.addEventListener("touchend", onSliderMove);
+  els.ageSlider.addEventListener("mouseup", onSliderMove);
 
   window.addEventListener("resize", function () {
     if (!els.screenPreview.hidden && state.pendingCanvas) {
