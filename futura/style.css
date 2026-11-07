@@ -1,0 +1,260 @@
+:root {
+  --ink: #1c2430;
+  --muted: #5a6678;
+  --cream: #fff8f0;
+  --sky: #9fd6ff;
+  --peach: #ffc4a8;
+  --coral: #ff6b6b;
+  --leaf: #3ecf8e;
+  --card: rgba(255, 255, 255, 0.88);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: "Nunito", system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(120% 80% at 10% 0%, var(--sky) 0%, transparent 55%),
+    radial-gradient(100% 70% at 100% 20%, var(--peach) 0%, transparent 50%),
+    linear-gradient(165deg, #e8f6ff 0%, #fff3ea 48%, #ffe8f2 100%);
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: calc(10px + var(--safe-top)) 16px calc(10px + var(--safe-bot));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  margin: 0;
+  font-family: "Baloo 2", cursive;
+  font-size: clamp(1.55rem, 5vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #e23d6d;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55);
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(28, 36, 48, 0.12);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.viewport {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screen {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: rise 0.45s ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.camera-frame,
+.photo-frame {
+  position: relative;
+  width: min(92vw, 420px);
+  aspect-ratio: 3 / 4;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #111827;
+  box-shadow:
+    0 18px 50px rgba(28, 36, 48, 0.22),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+}
+
+#video,
+#out {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1); /* mirror selfie */
+}
+
+#out {
+  background: #111827;
+}
+
+.hint,
+.fine,
+.status,
+.story {
+  margin: 0;
+  text-align: center;
+}
+
+.hint {
+  position: absolute;
+  inset: auto 16px 18px;
+  color: #fff;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+.fine {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 28rem;
+}
+
+.status {
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.primary {
+  min-height: 52px;
+  min-width: 200px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7aa2, #ff5a7a);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 12px 28px rgba(255, 90, 122, 0.35);
+  cursor: pointer;
+}
+
+.primary:active {
+  transform: scale(0.98);
+}
+
+.shoot {
+  background: linear-gradient(135deg, var(--leaf), #1fb87a);
+  box-shadow: 0 12px 28px rgba(31, 184, 122, 0.35);
+}
+
+.age-badge {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  font-family: "Baloo 2", cursive;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #e23d6d;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.age-dock {
+  margin-top: 8px;
+  padding: 14px 16px 8px;
+  border-radius: 24px 24px 18px 18px;
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 -8px 40px rgba(28, 36, 48, 0.12);
+  animation: rise 0.4s ease both;
+}
+
+.dock-labels {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.dock-labels strong {
+  font-family: "Baloo 2", cursive;
+  font-size: 1.6rem;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.dock-labels span:last-child {
+  text-align: right;
+}
+
+#ageSlider {
+  width: 100%;
+  appearance: none;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #9fd6ff, #ffc4a8, #ff8fb3);
+  outline: none;
+}
+
+#ageSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid #e23d6d;
+  box-shadow: 0 4px 14px rgba(226, 61, 109, 0.35);
+  cursor: pointer;
+}
+
+.story {
+  margin-top: 10px;
+  font-weight: 800;
+  color: var(--ink);
+  min-height: 1.4em;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-height: 700px) {
+  .camera-frame,
+  .photo-frame {
+    width: min(78vw, 340px);
+  }
+  .brand {
+    font-size: 1.4rem;
+  }
+}
