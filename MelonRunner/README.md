@@ -20,11 +20,14 @@ Safari → Add to Home Screen si querés. Publicado desde `gh-pages`.
 
 ```bash
 cd MelonRunner/play && python3 -m http.server 8080
-# otra terminal:
-cd MelonRunner/futura && python3 -m http.server 8081
+# Futura with Atlas Nano Banana (set ATLAS_API_KEY; never commit it):
+cd MelonRunner/futura && ATLAS_API_KEY=… npm start
+# static-only fallback (FRAN on-device, no Atlas):
+# cd MelonRunner/futura && python3 -m http.server 8081
 ```
 
-Azulín: `http://localhost:8080` · Futura: `http://localhost:8081`
+Azulín: `http://localhost:8080` · Futura: `http://localhost:8787`  
+Aging uses `google/nano-banana-2-lite/edit` via the local proxy; the selfie is sent as an inline data URI (not uploaded to Atlas storage). FRAN remains the offline fallback.
 
 ## Qué imita de Melon
 
