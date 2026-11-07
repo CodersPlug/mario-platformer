@@ -164,9 +164,14 @@
 
   function showCanvas(c) {
     try {
-      els.outImg.src = c.toDataURL("image/jpeg", 0.92);
+      // PNG keeps FRAN wrinkle deltas that JPEG 0.92 was crushing
+      els.outImg.src = c.toDataURL("image/png");
     } catch (err) {
-      console.error(err);
+      try {
+        els.outImg.src = c.toDataURL("image/jpeg", 0.98);
+      } catch (err2) {
+        console.error(err2);
+      }
     }
   }
 
