@@ -1,0 +1,15 @@
+{
+  "name": "cuando-sea-vieja",
+  "private": true,
+  "version": "19.0.0",
+  "type": "module",
+  "description": "Cuando sea vieja — selfie age scrubber with Atlas Nano Banana + FRAN fallback",
+  "scripts": {
+    "local": "node scripts/local-server.mjs",
+    "serve": "node scripts/local-server.mjs"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

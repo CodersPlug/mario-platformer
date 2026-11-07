@@ -28,5 +28,10 @@
 .DS_Store
 Thumbs.db
 
+# Secrets / local env
+.env
+**/.env
+MelonRunner/futura/.env
+
 # Asset meta files — keep these, they're part of Unity source control
 # *.meta
