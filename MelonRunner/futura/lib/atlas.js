@@ -1,7 +1,15 @@
 /** Shared Atlas Nano Banana re-age helpers (server + serverless). */
 
 export const MODEL = "google/nano-banana-2-lite/edit";
-export const ATLAS_GENERATE = "https://api.atlascloud.ai/api/v1/model/generateImage";
+export const ATLAS_GENERATE =
+  "https://api.atlascloud.ai/api/v1/model/generateImage";
+
+const ALLOWED_HOSTS = new Set([
+  "codersplug.github.io",
+  "cuando-sea-vieja.apps.grok.bot",
+  "localhost",
+  "127.0.0.1",
+]);
 
 export function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
@@ -44,7 +52,10 @@ export async function atlasReage(imageDataUrl, sourceAge, targetAge) {
     err.status = 503;
     throw err;
   }
-  if (typeof imageDataUrl !== "string" || !imageDataUrl.startsWith("data:image/")) {
+  if (
+    typeof imageDataUrl !== "string" ||
+    !imageDataUrl.startsWith("data:image/")
+  ) {
     const err = new Error("image data URL required");
     err.status = 400;
     throw err;
@@ -122,24 +133,37 @@ export function allowRequest(ip) {
   return day.n <= DAY_MAX;
 }
 
+/** Prefer platform-set client IP; ignore spoofable first XFF hop when possible. */
 export function clientIp(req) {
-  const xf = req.headers?.["x-forwarded-for"] || req.headers?.get?.("x-forwarded-for");
-  if (typeof xf === "string" && xf.length) return xf.split(",")[0].trim();
+  const h = req.headers || {};
+  const get = (k) => {
+    if (typeof h.get === "function") return h.get(k);
+    return h[k] || h[k.toLowerCase()];
+  };
+  const real =
+    get("x-real-ip") ||
+    get("cf-connecting-ip") ||
+    get("true-client-ip") ||
+    get("x-vercel-forwarded-for");
+  if (typeof real === "string" && real.trim()) {
+    return real.split(",")[0].trim();
+  }
+  const xf = get("x-forwarded-for");
+  if (typeof xf === "string" && xf.length) {
+    const parts = xf.split(",").map((s) => s.trim()).filter(Boolean);
+    // Prefer the rightmost public-looking hop (set by trusted proxy).
+    return parts[parts.length - 1] || "unknown";
+  }
   return req.socket?.remoteAddress || "unknown";
 }
 
-/** Origins allowed to call /api/reage (GitHub Pages + Cursor app + local). */
+/** Strict allowlist for CORS (GitHub Pages host + this app + local). */
 export function isAllowedOrigin(origin) {
   if (!origin) return true; // same-origin / non-browser
   try {
     const u = new URL(origin);
-    const h = u.hostname;
-    if (h === "localhost" || h === "127.0.0.1") return true;
-    if (h.endsWith(".apps.grok.bot")) return true;
-    if (h.endsWith(".cursor.app")) return true;
-    if (h === "codersplug.github.io") return true;
-    if (h.endsWith(".github.io")) return true;
-    return false;
+    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+    return ALLOWED_HOSTS.has(u.hostname);
   } catch {
     return false;
   }
