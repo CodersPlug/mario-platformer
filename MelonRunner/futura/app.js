@@ -44,8 +44,10 @@
     modelsReady: false,
     baseAge: null,
     sourceCanvas: null,
+    cartoonCanvas: null,
     pendingCanvas: null,
     landmarks: null,
+    faceBox: null,
     camStarting: false,
   };
 
@@ -370,6 +372,7 @@
     return {
       age: age,
       landmarks: best.landmarks,
+      box: best.detection.box,
       gender: null,
       score: best.detection.score,
       samples: ages.length,
@@ -403,17 +406,123 @@
     return { x: pt.x * map.scale + map.dx, y: pt.y * map.scale + map.dy };
   }
 
+  function quantize(v, steps) {
+    const q = 255 / (steps - 1);
+    return Math.round(v / q) * q;
+  }
+
+  /** Build a visible cartoon/caricature canvas from the selfie. */
+  function buildCartoon(source) {
+    const maxW = 640;
+    const scale = Math.min(1, maxW / source.width);
+    const w = Math.max(2, Math.round(source.width * scale));
+    const h = Math.max(2, Math.round(source.height * scale));
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(source, 0, 0, w, h);
+
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    const edge = new Uint8ClampedArray(w * h);
+
+    // Posterize + boost saturation (cartoon look)
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i];
+      let g = d[i + 1];
+      let b = d[i + 2];
+      const gray = 0.3 * r + 0.59 * g + 0.11 * b;
+      r = gray + (r - gray) * 1.65;
+      g = gray + (g - gray) * 1.65;
+      b = gray + (b - gray) * 1.65;
+      d[i] = quantize(clamp(r, 0, 255), 7);
+      d[i + 1] = quantize(clamp(g, 0, 255), 7);
+      d[i + 2] = quantize(clamp(b, 0, 255), 7);
+    }
+
+    // Simple edge ink
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = (y * w + x) * 4;
+        const lum =
+          0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+        const lumR =
+          0.3 * d[i + 4] + 0.59 * d[i + 5] + 0.11 * d[i + 6];
+        const lumD =
+          0.3 * d[i + w * 4] +
+          0.59 * d[i + w * 4 + 1] +
+          0.11 * d[i + w * 4 + 2];
+        const gmag = Math.abs(lum - lumR) + Math.abs(lum - lumD);
+        edge[y * w + x] = gmag > 28 ? 1 : 0;
+      }
+    }
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!edge[y * w + x]) continue;
+        const i = (y * w + x) * 4;
+        d[i] = d[i] * 0.35;
+        d[i + 1] = d[i + 1] * 0.35;
+        d[i + 2] = d[i + 2] * 0.35;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    // Landmark ink outline if we have a face
+    if (state.landmarks) {
+      const positions = state.landmarks.positions;
+      const sx = w / source.width;
+      const sy = h / source.height;
+      ctx.save();
+      ctx.strokeStyle = "rgba(40, 24, 30, 0.85)";
+      ctx.lineWidth = Math.max(2, w * 0.006);
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (let i = 0; i <= 16; i++) {
+        const p = positions[i];
+        const x = p.x * sx;
+        const y = p.y * sy;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      // Eyes as bigger cartoon circles
+      const eyePairs = [
+        [36, 39],
+        [42, 45],
+      ];
+      for (let e = 0; e < eyePairs.length; e++) {
+        const a = positions[eyePairs[e][0]];
+        const b = positions[eyePairs[e][1]];
+        const cx = ((a.x + b.x) / 2) * sx;
+        const cy = ((a.y + b.y) / 2) * sy;
+        const rad = (Math.abs(b.x - a.x) * sx) * 0.85;
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(6, rad), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(20,20,30,0.9)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(2.5, rad * 0.35), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    return c;
+  }
+
   function drawCrow(ctx, inner, outer, t, dir) {
-    const cx = (inner.x + outer.x) / 2 + dir * 18;
+    const cx = (inner.x + outer.x) / 2 + dir * 22;
     const cy = (inner.y + outer.y) / 2;
     for (let i = 0; i < 3; i++) {
       ctx.beginPath();
-      ctx.moveTo(cx, cy - 2 + i * 4);
+      ctx.moveTo(cx, cy - 2 + i * 5);
       ctx.quadraticCurveTo(
-        cx + dir * (10 + t * 14),
-        cy + i * 3,
-        cx + dir * (18 + t * 16),
-        cy - 6 + i * 7
+        cx + dir * (12 + t * 20),
+        cy + i * 4,
+        cx + dir * (24 + t * 22),
+        cy - 8 + i * 9
       );
       ctx.stroke();
     }
@@ -424,107 +533,184 @@
     ctx.moveTo(mouth.x, mouth.y);
     ctx.quadraticCurveTo(
       (mouth.x + cheek.x) / 2,
-      (mouth.y + cheek.y) / 2 + 8 * t,
+      (mouth.y + cheek.y) / 2 + 12 * t,
       cheek.x,
-      cheek.y + 4
+      cheek.y + 6
     );
     ctx.stroke();
   }
 
+  function hairCapPath(ctx, get) {
+    const left = get(0);
+    const right = get(16);
+    const brow = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26].map(get);
+    const top = brow.reduce(function (m, p) {
+      return Math.min(m, p.y);
+    }, brow[0].y);
+    ctx.beginPath();
+    ctx.moveTo(left.x, left.y);
+    ctx.quadraticCurveTo(
+      (left.x + right.x) / 2,
+      top - (right.x - left.x) * 0.62,
+      right.x,
+      right.y
+    );
+    ctx.lineTo(right.x, top + 24);
+    ctx.quadraticCurveTo(
+      (left.x + right.x) / 2,
+      top - (right.x - left.x) * 0.4,
+      left.x,
+      top + 24
+    );
+    ctx.closePath();
+  }
+
   function renderAge(targetAge) {
     if (!state.sourceCanvas || state.baseAge == null) return;
+    if (!state.cartoonCanvas) {
+      state.cartoonCanvas = buildCartoon(state.sourceCanvas);
+    }
+
     resizeOutToFrame();
     const ctx = els.out.getContext("2d");
     const cw = els.out.width;
     const ch = els.out.height;
+    if (cw < 4 || ch < 4) return;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
 
-    const map = drawCover(ctx, state.sourceCanvas, cw, ch);
+    // Always start from caricature (not the raw photo)
+    const map = drawCover(ctx, state.cartoonCanvas, cw, ch);
+    // Remap landmarks from source → cartoon → output
+    const srcToCartoon = {
+      scaleX: state.cartoonCanvas.width / state.sourceCanvas.width,
+      scaleY: state.cartoonCanvas.height / state.sourceCanvas.height,
+    };
+    const mapLm = function (pt) {
+      return {
+        x: pt.x * srcToCartoon.scaleX * map.scale + map.dx,
+        y: pt.y * srcToCartoon.scaleY * map.scale + map.dy,
+      };
+    };
+
     const base = state.baseAge;
     const delta = targetAge - base;
     const older = Math.max(0, delta);
     const younger = Math.max(0, -delta);
+    const tOld = clamp(older / 40, 0, 1);
+    const tYoung = clamp(younger / 20, 0, 1);
 
-    if (older > 0) {
-      const t = clamp(older / 55, 0, 1);
+    if (tOld > 0) {
       ctx.save();
       ctx.globalCompositeOperation = "saturation";
-      ctx.fillStyle = "rgba(160,140,120," + (0.15 + t * 0.45) + ")";
+      ctx.fillStyle = "rgba(150,130,110," + (0.25 + tOld * 0.55) + ")";
       ctx.fillRect(0, 0, cw, ch);
       ctx.restore();
       ctx.save();
-      ctx.globalCompositeOperation = "soft-light";
-      ctx.fillStyle = "rgba(210, 190, 160," + t * 0.35 + ")";
+      ctx.globalCompositeOperation = "multiply";
+      ctx.fillStyle = "rgba(210, 185, 150," + (0.12 + tOld * 0.35) + ")";
       ctx.fillRect(0, 0, cw, ch);
       ctx.restore();
     }
 
-    if (younger > 0) {
-      const t = clamp(younger / 25, 0, 1);
+    if (tYoung > 0) {
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.fillStyle = "rgba(255, 230, 210," + t * 0.28 + ")";
+      ctx.fillStyle = "rgba(255, 220, 200," + (0.2 + tYoung * 0.4) + ")";
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.restore();
+      ctx.save();
+      ctx.globalCompositeOperation = "overlay";
+      ctx.fillStyle = "rgba(255, 180, 200," + tYoung * 0.25 + ")";
       ctx.fillRect(0, 0, cw, ch);
       ctx.restore();
     }
 
-    if (state.landmarks && older > 0) {
+    if (state.landmarks) {
       const positions = state.landmarks.positions;
       const get = function (i) {
-        return mapPoint(positions[i], map);
+        return mapLm(positions[i]);
       };
-      const t = clamp(older / 50, 0, 1);
-      ctx.save();
-      ctx.strokeStyle = "rgba(90, 60, 50," + (0.15 + t * 0.45) + ")";
-      ctx.lineWidth = Math.max(1, cw * 0.0025);
-      ctx.lineCap = "round";
-      drawCrow(ctx, get(36), get(39), t, -1);
-      drawCrow(ctx, get(45), get(42), t, 1);
-      if (t > 0.2) {
-        smileLine(ctx, get(48), get(3), t);
-        smileLine(ctx, get(54), get(13), t);
-      }
-      if (t > 0.25) {
+
+      if (tOld > 0.05) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(70, 40, 35," + (0.35 + tOld * 0.55) + ")";
+        ctx.lineWidth = Math.max(2, cw * 0.0045 * (0.7 + tOld));
+        ctx.lineCap = "round";
+        drawCrow(ctx, get(36), get(39), tOld, -1);
+        drawCrow(ctx, get(45), get(42), tOld, 1);
+        smileLine(ctx, get(48), get(3), tOld);
+        smileLine(ctx, get(54), get(13), tOld);
         const a = get(19);
         const b = get(24);
-        const midY = (a.y + b.y) / 2 - (b.x - a.x) * 0.25;
+        const midY = (a.y + b.y) / 2 - (b.x - a.x) * 0.22;
         for (let i = 0; i < 3; i++) {
           ctx.beginPath();
-          ctx.moveTo(a.x + 8, midY + i * 6 * t);
-          ctx.quadraticCurveTo((a.x + b.x) / 2, midY - 4 + i * 6 * t, b.x - 8, midY + i * 6 * t);
+          ctx.moveTo(a.x + 10, midY + i * 7 * tOld);
+          ctx.quadraticCurveTo(
+            (a.x + b.x) / 2,
+            midY - 6 + i * 7 * tOld,
+            b.x - 10,
+            midY + i * 7 * tOld
+          );
           ctx.stroke();
         }
-      }
-      ctx.restore();
+        ctx.restore();
 
-      if (t > 0.15) {
-        const left = get(0);
-        const right = get(16);
-        const brow = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26].map(get);
-        const top = brow.reduce(function (m, p) {
-          return Math.min(m, p.y);
-        }, brow[0].y);
         ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(left.x, left.y);
-        ctx.quadraticCurveTo((left.x + right.x) / 2, top - (right.x - left.x) * 0.55, right.x, right.y);
-        ctx.lineTo(right.x, top + 20);
-        ctx.quadraticCurveTo((left.x + right.x) / 2, top - (right.x - left.x) * 0.35, left.x, top + 20);
-        ctx.closePath();
-        ctx.fillStyle = "rgba(245,245,248," + t * 0.42 + ")";
+        hairCapPath(ctx, get);
+        ctx.fillStyle = "rgba(236, 236, 242," + (0.25 + tOld * 0.55) + ")";
         ctx.globalCompositeOperation = "screen";
         ctx.fill();
         ctx.restore();
       }
+
+      if (tYoung > 0.05) {
+        // Bigger sparkly cartoon eyes when younger
+        const eyes = [
+          [36, 39],
+          [42, 45],
+        ];
+        for (let e = 0; e < eyes.length; e++) {
+          const p0 = get(eyes[e][0]);
+          const p1 = get(eyes[e][1]);
+          const cx = (p0.x + p1.x) / 2;
+          const cy = (p0.y + p1.y) / 2;
+          const rad = Math.abs(p1.x - p0.x) * (0.7 + tYoung * 0.5);
+          ctx.save();
+          ctx.fillStyle = "rgba(255,255,255," + (0.25 + tYoung * 0.35) + ")";
+          ctx.beginPath();
+          ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#1a1a28";
+          ctx.beginPath();
+          ctx.arc(cx, cy, rad * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
     }
+
+    ctx.restore();
 
     els.ageReadout.textContent = String(targetAge);
     els.ageBadge.textContent = targetAge + " años";
     els.storyLine.textContent = storyFor(targetAge, base);
   }
 
+  function afterLayout(fn) {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(fn);
+    });
+  }
+
   function applyDetectedAge(age) {
     state.baseAge = age;
+    if (!state.cartoonCanvas && state.sourceCanvas) {
+      state.cartoonCanvas = buildCartoon(state.sourceCanvas);
+    }
     els.ageSlider.min = "1";
     els.ageSlider.max = "100";
     els.ageSlider.value = String(age);
@@ -535,7 +721,9 @@
     els.manualAge.hidden = true;
     els.ageDock.hidden = false;
     els.statusLine.textContent = "Mové el slider para viajar en el tiempo.";
-    renderAge(age);
+    afterLayout(function () {
+      renderAge(age);
+    });
   }
 
   async function processImage(canvas) {
@@ -546,8 +734,10 @@
     setProgress(2, "Iniciando sesión");
 
     state.sourceCanvas = copyCanvas(canvas);
+    state.cartoonCanvas = null;
     state.pendingCanvas = null;
     state.landmarks = null;
+    state.faceBox = null;
     state.baseAge = null;
 
     try {
@@ -558,16 +748,28 @@
       await wait(80);
       const det = await detectAgeAndFace(canvas, setProgress);
       state.landmarks = det.landmarks;
+      state.faceBox = det.box || null;
 
+      setProgress(88, "Dibujando caricatura…");
+      state.cartoonCanvas = buildCartoon(state.sourceCanvas);
       setProgress(100, "Listo");
-      await wait(220);
+      await wait(180);
 
       show("result");
       els.btnAgain.hidden = false;
-      resizeOutToFrame();
-      drawCover(els.out.getContext("2d"), state.sourceCanvas, els.out.width, els.out.height);
 
       if (det.age == null) {
+        afterLayout(function () {
+          resizeOutToFrame();
+          if (state.cartoonCanvas) {
+            drawCover(
+              els.out.getContext("2d"),
+              state.cartoonCanvas,
+              els.out.width,
+              els.out.height
+            );
+          }
+        });
         els.ageAnnounce.hidden = true;
         els.manualAge.hidden = false;
         els.ageDock.hidden = true;
@@ -583,10 +785,20 @@
       await wait(200);
       show("result");
       els.btnAgain.hidden = false;
-      resizeOutToFrame();
-      if (state.sourceCanvas) {
-        drawCover(els.out.getContext("2d"), state.sourceCanvas, els.out.width, els.out.height);
+      if (state.sourceCanvas && !state.cartoonCanvas) {
+        state.cartoonCanvas = buildCartoon(state.sourceCanvas);
       }
+      afterLayout(function () {
+        resizeOutToFrame();
+        if (state.cartoonCanvas) {
+          drawCover(
+            els.out.getContext("2d"),
+            state.cartoonCanvas,
+            els.out.width,
+            els.out.height
+          );
+        }
+      });
       els.ageAnnounce.hidden = true;
       els.manualAge.hidden = false;
       els.ageDock.hidden = true;
@@ -595,8 +807,10 @@
 
   function resetSession() {
     state.sourceCanvas = null;
+    state.cartoonCanvas = null;
     state.pendingCanvas = null;
     state.landmarks = null;
+    state.faceBox = null;
     state.baseAge = null;
     els.ageDock.hidden = true;
     els.btnAgain.hidden = true;
@@ -658,15 +872,18 @@
     applyDetectedAge(age);
   });
 
-  els.ageSlider.addEventListener("input", function () {
+  function onSliderMove() {
+    if (state.baseAge == null || !state.cartoonCanvas) return;
     renderAge(parseInt(els.ageSlider.value, 10));
-  });
+  }
+  els.ageSlider.addEventListener("input", onSliderMove);
+  els.ageSlider.addEventListener("change", onSliderMove);
 
   window.addEventListener("resize", function () {
     if (!els.screenPreview.hidden && state.pendingCanvas) {
       drawPreview(state.pendingCanvas);
     }
-    if (state.sourceCanvas && state.baseAge != null) {
+    if (state.cartoonCanvas && state.baseAge != null) {
       renderAge(parseInt(els.ageSlider.value, 10) || state.baseAge);
     }
   });
